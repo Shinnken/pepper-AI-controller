@@ -1,0 +1,248 @@
+Metadata-Version: 2.1
+Name: qi
+Version: 3.1.5
+Summary: LibQi Python bindings
+Keywords: libqi,qi,naoqi,aldebaran,robotics,robot,nao,pepper,romeo,plato
+Maintainer-Email: Unknown <framework@aldebaran.com>, Vincent Palancher <vincent.palancher@aldebaran.com>, =?utf-8?b?SsOpcsOpbXkgTW9ubm9u?= <jmonnon@aldebaran.com>
+License: Copyright (c) 2011-2020, Softbank Robotics Europe
+        All rights reserved.
+        
+        Redistribution and use in source and binary forms, with or without
+        modification, are permitted provided that the following conditions are met:
+            * Redistributions of source code must retain the above copyright
+              notice, this list of conditions and the following disclaimer.
+            * Redistributions in binary form must reproduce the above copyright
+              notice, this list of conditions and the following disclaimer in the
+              documentation and/or other materials provided with the distribution.
+            * Neither the name of the Aldebaran Robotics nor the
+              names of its contributors may be used to endorse or promote products
+              derived from this software without specific prior written permission.
+        
+        THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+        ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+        WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+        DISCLAIMED. IN NO EVENT SHALL Aldebaran Robotics BE LIABLE FOR ANY
+        DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+        (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+        LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+        ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+        (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+        SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Libraries
+Classifier: Topic :: Software Development :: Libraries :: Application Frameworks
+Classifier: Topic :: Software Development :: Embedded Systems
+Classifier: Framework :: Robot Framework :: Library
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3 :: Only
+Project-URL: Repository, https://github.com/aldebaran/libqi-python
+Requires-Python: >=3.7
+Description-Content-Type: text/x-rst
+
+===================================
+LibQiPython - LibQi Python bindings
+===================================
+
+This repository contains the official Python bindings of the `LibQi`__, the ``qi``
+Python module.
+
+__ LibQi_repo_
+
+Building
+========
+
+To build the project, you need:
+
+- a compiler that supports C++17.
+
+   - on Ubuntu: `apt-get install build-essential`.
+
+- CMake with at least version 3.23.
+
+   - on PyPI (**recommended**): `pip install "cmake>=3.23"`.
+   - on Ubuntu: `apt-get install cmake`.
+
+- Python with at least version 3.7 and its development libraries.
+
+   - On Ubuntu: `apt-get install libpython3-dev`.
+
+- a Python `virtualenv`.
+
+   - On Ubuntu:
+
+     .. code-block:: console
+
+       apt-get install python3-venv
+       python3 -m venv ~/my-venv # Use the path of your convenience.
+       source ~/my-venv/bin/activate
+
+.. note::
+  The CMake project offers several configuration options and exports a set
+  of targets when installed. You may refer to the ``CMakeLists.txt`` file
+  for more details about available parameters and exported targets.
+
+.. note::
+  The procedures described below assume that you have downloaded the project
+  sources, that your current working directory is the project sources root
+  directory and that you are working inside your virtualenv.
+
+Conan
+^^^^^
+
+Additionally, `libqi-python` is available as a Conan 2 project, which means you
+can use Conan to fetch dependencies.
+
+You can install and/or upgrade Conan 2 and create a default profile in the
+following way:
+
+.. code-block:: console
+
+  # install/upgrade Conan 2
+  pip install --upgrade conan~=2
+  # create a default profile
+  conan profile detect
+
+Install dependencies from Conan and build with CMake
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The procedure to build the project using Conan to fetch dependencies is the
+following.
+
+Most dependencies are available on Conan Center repository and should not
+require any additional steps to make them available. However, you might need to
+first get and export the `libqi` recipe into your local Conan cache.
+
+.. code-block:: console
+
+  # GitHub is available, but you can also use internal GitLab.
+  QI_REPOSITORY="https://github.com/aldebaran/libqi.git"
+  QI_VERSION="4.0.1" # Checkout the version your project need.
+  QI_PATH="$HOME/libqi" # Or whatever path you want.
+  git clone \
+    --depth=1 `# Only fetch one commit.` \
+    --branch "qi-framework-v${QI_VERSION}" \
+    "${QI_REPOSITORY}" \
+    "${QI_PATH}"
+  conan export "${QI_PATH}" \
+    --version "${QI_VERSION}" # Technically not required but some
+                              # versions of libqi require it
+                              # because of a bug.
+
+You can then install the `libqi-python` dependencies in Conan.
+
+.. code-block:: console
+
+  conan install . \
+    --build=missing `# Build dependencies binaries that are missing in Conan.` \
+    -s build_type=Debug `# Build in debug mode.` \
+    -c tools.build:skip_test=true `# Skip tests building for dependencies.` \
+    -c '&:tools.build:skip_test=false' # Do not skip tests for the project.
+
+This will generate a build directory containing a configuration with a
+toolchain file that allows CMake to find dependencies inside the Conan cache.
+
+You can then invoke CMake directly inside the build configuration directory to
+configure and build the project. Fortunately, Conan also generates a CMake
+preset that simplifies the process. The name of the preset may differ on
+your machine. You may need to find the preset generated by Conan first by
+calling:
+
+.. code-block:: console
+
+  cmake --list-presets
+
+Here, we'll assume that the preset is named `conan-linux-x86_64-gcc-debug`.
+To start building, you need to configure with CMake and then build:
+
+.. code-block:: console
+
+  cmake --preset conan-linux-x86_64-gcc-debug
+  cmake --build --preset conan-linux-x86_64-gcc-debug
+
+Tests can now be invoked using CTest_, but they require a runtime environment
+from Conan so that all dependencies are found:
+
+.. code-block:: console
+
+  source build/linux-x86_64-gcc-debug/generators/conanrun.sh
+  ctest --preset conan-linux-x86_64-gcc-debug --output-on-failure
+  source build/linux-x86_64-gcc-debug/generators/deactivate_conanrun.sh
+
+Finally, you can install the project in the directory of your choice.
+
+The project defines a single install component, the ``Module`` component.
+
+.. code-block:: console
+
+  # `cmake --install` does not support presets sadly.
+  cmake \
+    --install build/linux-x86_64-gcc-debug \
+    --component Module --prefix ~/my-libqi-python-install
+
+Wheel (PEP 517)
+---------------
+
+You may build this project as a wheel package using PEP 517.
+
+It uses a scikit-build_ backend which interfaces with CMake.
+
+You may need to provide a toolchain file so that CMake finds the required
+dependencies, such as a toolchain generated by Conan:
+
+.. code-block:: console
+
+  conan install . \
+    --build=missing `# Build dependencies binaries that are missing in Conan.` \
+    -c tools.build:skip_test=true # Skip any test.
+
+You now can use the ``build`` Python module to build the wheel using PEP 517.
+
+.. code-block:: console
+
+  pip install -U build
+  python -m build \
+    --config-setting cmake.define.CMAKE_TOOLCHAIN_FILE=$PWD/build/linux-x86_64-gcc-release/generators/conan_toolchain.cmake
+
+When built that way, the native libraries present in the wheel are most likely incomplete.
+You will need to use ``auditwheel`` or ``delocate`` to fix it.
+
+.. note::
+  `auditwheel` requires the `patchelf` utility program on Linux. You may need
+  to install it (on Ubuntu: `apt-get install patchelf`).
+
+.. code-block:: console
+
+  pip install -U auditwheel # or `delocate` on MacOS.
+  auditwheel repair \
+    --strip `# Strip debugging symbols to get a lighter archive.` \
+    `# The desired platform, which may differ depending on your build host.` \
+    `# With Ubuntu 20.04, we can target manylinux_2_31. Newer versions of` \
+    `# Ubuntu will have to target newer versions of manylinux.` \
+    `# If you don't need a manylinux archive, you can also target the` \
+    `# 'linux_x86_64' platform.` \
+    --plat manylinux_2_31_x86_64 \
+    `# Path to the wheel archive.` \
+    dist/qi-*.whl
+  # The wheel will be by default placed in a `./wheelhouse/` directory.
+
+Crosscompiling
+--------------
+
+The project supports cross-compiling as explained in the `CMake manual about
+toolchains`__. You may simply set the ``CMAKE_TOOLCHAIN_FILE`` variable to the
+path of the CMake file of your toolchain.
+
+__ CMake_toolchains_
+
+.. _LibQi_repo: https://github.com/aldebaran/libqi
+.. _scikit-build: https://scikit-build.readthedocs.io/en/latest/
+.. _CMake_toolchains: https://cmake.org/cmake/help/latest/manual/cmake-toolchains.7.html
+.. _CTest: https://cmake.org/cmake/help/latest/manual/ctest.1.html
