@@ -3,7 +3,8 @@ from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
 import qi
 import sys
-
+import time
+import random
 
 
 # logfire.configure(console=False)
@@ -41,63 +42,106 @@ factory = AuthenticatorFactory(*logins)
 app.session.setClientAuthenticatorFactory(factory)
 app.start()
 
-
-tts = app.session.service("ALTextToSpeech")
+# tts = app.session.service("ALTextToSpeech")
+# tts.setLanguage("Polish")
+tts = app.session.service("ALAnimatedSpeech")
 motion_service = app.session.service("ALMotion")
 posture_service = app.session.service("ALRobotPosture")
 
 
-tts.setLanguage("Polish")
-
-
-
+animations = [
+    "^start(animations/Stand/Gestures/Hey_1)",
+    "^start(animations/Stand/Gestures/Hey_2)",
+    "^start(animations/Stand/Gestures/Hey_3)",
+    "^start(animations/Stand/Gestures/Enthusiastic_1)",
+    "^start(animations/Stand/Gestures/Enthusiastic_2)",
+    "^start(animations/Stand/Gestures/Enthusiastic_3)",
+    "^start(animations/Stand/Gestures/Enthusiastic_4)",
+    "^start(animations/Stand/Gestures/BodyTalk_1)",
+    "^start(animations/Stand/Gestures/BodyTalk_2)",
+    "^start(animations/Stand/Gestures/BodyTalk_3)",
+    "^start(animations/Stand/Gestures/BodyTalk_4)",
+]
 def load_system_message():
     """Load system message from .prompt file"""
     with open('system_message.prompt', 'r', encoding='utf-8') as f:
         return f.read().strip()
 
+
 def trim_history(messages, max_size=6):
     """Keep system message + last max_size conversation messages"""
     if len(messages) <= max_size:
         return messages
-    
+
     # Zachowaj pierwszą wiadomość (zawiera system prompt) + ostatnie (max_size-1) wiadomości
-    return [messages[0]] + messages[-(max_size-1):]
+    return [messages[0]] + messages[-(max_size - 1):]
+
+
+def moveHands(motion_service):
+    # Arms motion from user have always the priority than walk arms motion
+    JointNames = ["LShoulderPitch", "LShoulderRoll", "LElbowYaw", "LElbowRoll", "RShoulderPitch"]
+    deg_to_rad = 0.017453
+    Arm1 = [40, 25, -35, -40, 80]
+    Arm1 = [x * deg_to_rad for x in Arm1]
+
+    Arm2 = [-10, 50, -80, -80, 10]
+    Arm2 = [x * deg_to_rad for x in Arm2]
+
+    pFractionMaxSpeed = 0.5
+
+    motion_service.angleInterpolationWithSpeed(JointNames, Arm1, pFractionMaxSpeed)
+    motion_service.angleInterpolationWithSpeed(JointNames, Arm2, pFractionMaxSpeed)
+    motion_service.angleInterpolationWithSpeed(JointNames, Arm1, pFractionMaxSpeed)
+
+
+def moveFingers(motion_service):
+    # Arms motion from user have always the priority than walk arms motion
+    JointNames = ["LHand", "RHand", "LWristYaw", "RWristYaw"]
+    deg_to_rad = 0.017453
+    Arm1 = [0, 0, 0, 0]
+    Arm1 = [x * deg_to_rad for x in Arm1]
+
+    Arm2 = [50, 50, 0, 0]
+    Arm2 = [x * deg_to_rad for x in Arm2]
+
+    pFractionMaxSpeed = 0.8
+
+    motion_service.angleInterpolationWithSpeed(JointNames, Arm1, pFractionMaxSpeed)
+    motion_service.angleInterpolationWithSpeed(JointNames, Arm2, pFractionMaxSpeed)
+    motion_service.angleInterpolationWithSpeed(JointNames, Arm1, pFractionMaxSpeed)
+
 
 def main():
     print("zaczynamy")
     # Wake up robot
-    motion_service.wakeUp()
-    print("idziemy dalej")
-    # Send robot to Stand Zero
-    posture_service.goToPosture("StandZero", 0.5)
-    print("i jeszcze dalej")
-    posture_service.goToPosture("StandInit", 0.5)
+    # motion_service.wakeUp()
 
-    tts.say("Witajcie mordeczki!")
+    # motion_service.rest()
+
     # Load system prompt from file
     system_prompt = load_system_message()
 
     ollama_model = OpenAIModel(
-        model_name='SpeakLeash/bielik-11b-v2.3-instruct:Q4_K_M', provider=OpenAIProvider(base_url='http://localhost:11434/v1')
+        model_name='SpeakLeash/bielik-11b-v2.3-instruct:Q4_K_M',
+        provider=OpenAIProvider(base_url='http://localhost:11434/v1')
     )
     # Create agent with Ollama model
     agent = Agent(
         ollama_model,
         system_prompt=system_prompt
     )
-    
+
     # Initialize message history
     message_history = []
-    
+
     print("Chatbot uruchomiony!")
-    
+
     # Main chat loop
     while True:
         user_input = input("Ty: ")
         # Trim history to keep only last 8 messages
         message_history = trim_history(message_history)
-        
+
         # Run agent with current input and history
         result = agent.run_sync(
             user_input,
@@ -106,10 +150,12 @@ def main():
 
         # Print bot response
         print("Bot:", result.output)
-        tts.say(result.output)
-        
+        moveHands(motion_service)
+        tts.say(f"{random.choice(animations)} result.output")
+
         # Add new messages to history
         message_history.extend(result.new_messages())
+
 
 if __name__ == "__main__":
     main()
