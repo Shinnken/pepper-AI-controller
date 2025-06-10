@@ -151,7 +151,7 @@ def main():
         # Print bot response
         print("Bot:", result.output)
         moveHands(motion_service)
-        tts.say(f"{random.choice(animations)} result.output")
+        tts.say(f"{random.choice(animations)} {result.output}")
 
         # Add new messages to history
         message_history.extend(result.new_messages())
