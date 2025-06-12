@@ -1,0 +1,1 @@
+This function initializes a bottle detection process using YOLOv8 object detection model. It loads a specific image from a predefined path and reads it using OpenCV. The function then loads a pre-trained YOLO model and performs object detection on the input image, preparing the results for further processing.

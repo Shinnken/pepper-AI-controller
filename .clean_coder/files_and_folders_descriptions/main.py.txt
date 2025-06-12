@@ -1,0 +1,10 @@
+File Description:
+A Python script for interacting with a NAO robot using QiSDK, integrating an AI agent with Ollama for conversational interactions. The script handles robot authentication, motion control, text-to-speech, and maintains a conversational context with an AI model.
+
+Key Integration Points:
+- Connects to NAO robot via QiSDK with authentication
+- Uses Ollama AI model for generating conversational responses
+- Implements hand movements and animated speech during interactions
+- Maintains a trimmed message history for contextual conversations
+
+Responsible for: Robot-AI interaction and conversational interface implementation.

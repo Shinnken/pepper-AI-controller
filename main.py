@@ -3,7 +3,6 @@ from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
 import qi
 import sys
-import time
 import random
 
 
@@ -142,19 +141,25 @@ def main():
         # Trim history to keep only last 8 messages
         message_history = trim_history(message_history)
 
-        # Run agent with current input and history
-        result = agent.run_sync(
-            user_input,
-            message_history=message_history
-        )
-
-        # Print bot response
-        print("Bot:", result.output)
-        moveHands(motion_service)
-        tts.say(f"{random.choice(animations)} {result.output}")
-
-        # Add new messages to history
-        message_history.extend(result.new_messages())
+        try:
+            # Stream response
+            animation = random.choice(animations)
+            full_response = ""
+            stream = agent.run_stream(user_input, message_history=message_history)
+            
+            for token in stream:
+                full_response += token
+                tts.say(f"{animation} {token}")
+            
+            print("Bot:", full_response)
+            message_history.extend(stream.new_messages())
+            
+        except Exception as e:
+            # Fallback to sync
+            result = agent.run_sync(user_input, message_history=message_history)
+            print("Bot:", result.output)
+            tts.say(f"{random.choice(animations)} {result.output}")
+            message_history.extend(result.new_messages())
 
 
 if __name__ == "__main__":

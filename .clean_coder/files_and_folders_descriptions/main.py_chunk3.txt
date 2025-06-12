@@ -1,0 +1,1 @@
+The provided code contains two utility functions for managing conversation context. `load_system_message()` reads a system prompt from a file, providing initial instructions for the AI model. `trim_history()` manages conversation memory by keeping the system message and a limited number of recent messages, preventing context overflow and maintaining conversation relevance.

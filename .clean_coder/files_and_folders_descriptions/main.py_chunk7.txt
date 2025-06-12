@@ -1,0 +1,1 @@
+This code chunk handles the robot's response output and interaction. It prints the bot's response, performs a hand movement animation, and uses text-to-speech to verbalize the response with a random animation. The function then updates the message history with the new conversation messages, preparing for potential follow-up interactions.

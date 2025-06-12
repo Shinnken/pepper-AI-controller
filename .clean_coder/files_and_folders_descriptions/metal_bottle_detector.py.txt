@@ -1,0 +1,7 @@
+The script performs object detection on an image using YOLOv8, specifically targeting bottles. It uses OpenCV to read and annotate the image, filters detections based on specific criteria (class, confidence, aspect ratio), and saves the results as an annotated image and a JSON file with detection coordinates. The script is responsible for processing a single image and identifying vertical bottle objects with high confidence.
+
+Key integration points:
+- Requires YOLOv8 pre-trained model
+- Uses OpenCV for image processing
+- Outputs annotated image and JSON with detection details
+- Filters bottles based on specific detection rules

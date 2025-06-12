@@ -1,0 +1,1 @@
+The function `moveFingers` controls the NAO robot's hand and wrist movements by manipulating joint angles. It uses the motion service to perform a sequence of hand and wrist angle interpolations with a predefined speed. The function moves the hands and wrists through a specific pattern, alternating between two positions with a maximum speed of 0.8.

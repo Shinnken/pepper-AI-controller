@@ -1,0 +1,7 @@
+The code defines a NAOqi module (SoundReceiverModule) for capturing and processing audio data from a NAO robot's microphone. It allows subscribing to the audio device, receiving audio buffers, and retrieving the latest audio data. The file is responsible for audio input management and data retrieval from the robot's microphone system.
+
+Key points for integration:
+- Uses ALAudioDevice service to access microphone data
+- Provides methods to start/stop audio input
+- Stores the latest audio buffer for retrieval
+- Configurable for single channel (front microphone) at 16kHz sampling rate

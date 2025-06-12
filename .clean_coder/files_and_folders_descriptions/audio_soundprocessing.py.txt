@@ -1,0 +1,8 @@
+File responsible for processing audio signals from the front microphone of a Nao robot, specifically calculating the RMS (Root Mean Square) power of the audio input. The script connects to the robot's audio service, subscribes to the front microphone, processes audio frames, and calculates the RMS level of the sound. It provides a way to capture and analyze audio input from the robot's microphone with configurable processing parameters.
+
+Key integration points:
+- Requires Naoqi framework (qi)
+- Uses ALAudioDevice service for audio input
+- Configurable audio sampling rate and processing frames
+- Converts raw audio data to signed integers
+- Calculates RMS level of audio signal
