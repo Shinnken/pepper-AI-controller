@@ -1,6 +1,7 @@
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
+import asyncio
 import qi
 import sys
 import random
@@ -34,7 +35,6 @@ class AuthenticatorFactory:
         return Authenticator(self.username, self.password)
 
 
-# Connect to the robot fails at app.start() => RuntimeError: disconnected
 app = qi.Application(sys.argv, url="tcps://192.168.1.110:9503")
 logins = ("nao", "nao")
 factory = AuthenticatorFactory(*logins)
@@ -43,6 +43,7 @@ app.start()
 
 # tts = app.session.service("ALTextToSpeech")
 # tts.setLanguage("Polish")
+
 tts = app.session.service("ALAnimatedSpeech")
 motion_service = app.session.service("ALMotion")
 posture_service = app.session.service("ALRobotPosture")
@@ -110,7 +111,7 @@ def moveFingers(motion_service):
     motion_service.angleInterpolationWithSpeed(JointNames, Arm1, pFractionMaxSpeed)
 
 
-def main():
+async def main():
     print("zaczynamy")
     # Wake up robot
     # motion_service.wakeUp()
@@ -121,7 +122,7 @@ def main():
     system_prompt = load_system_message()
 
     ollama_model = OpenAIModel(
-        model_name='SpeakLeash/bielik-11b-v2.3-instruct:Q4_K_M',
+        model_name='SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0',
         provider=OpenAIProvider(base_url='http://localhost:11434/v1')
     )
     # Create agent with Ollama model
@@ -141,26 +142,20 @@ def main():
         # Trim history to keep only last 8 messages
         message_history = trim_history(message_history)
 
-        try:
-            # Stream response
-            animation = random.choice(animations)
-            full_response = ""
-            stream = agent.run_stream(user_input, message_history=message_history)
-            
-            for token in stream:
+        # Stream response
+        tts.say(random.choice(animations))
+        full_response = ""
+        
+        async with agent.run_stream(user_input, message_history=message_history) as result:
+            async for token in result.stream_text(delta=True):
+                print(token, end='', flush=True)
+                tts.say(token)
                 full_response += token
-                tts.say(f"{animation} {token}")
             
-            print("Bot:", full_response)
-            message_history.extend(stream.new_messages())
-            
-        except Exception as e:
-            # Fallback to sync
-            result = agent.run_sync(user_input, message_history=message_history)
-            print("Bot:", result.output)
-            tts.say(f"{random.choice(animations)} {result.output}")
+            print()  # Add newline after streaming
             message_history.extend(result.new_messages())
+            
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
