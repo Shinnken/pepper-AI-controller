@@ -41,13 +41,14 @@ factory = AuthenticatorFactory(*logins)
 app.session.setClientAuthenticatorFactory(factory)
 app.start()
 
-# tts = app.session.service("ALTextToSpeech")
-# tts.setLanguage("Polish")
+
 
 tts = app.session.service("ALAnimatedSpeech")
 motion_service = app.session.service("ALMotion")
 posture_service = app.session.service("ALRobotPosture")
 
+# tts = app.session.service("ALTextToSpeech")
+# tts.setLanguage("Polish")
 
 animations = [
     "^start(animations/Stand/Gestures/Hey_1)",
@@ -122,7 +123,8 @@ async def main():
     system_prompt = load_system_message()
 
     ollama_model = OpenAIModel(
-        model_name='SpeakLeash/bielik-11b-v2.3-instruct:Q4_K_M',
+        #model_name='SpeakLeash/bielik-11b-v2.3-instruct:Q4_K_M',
+        model_name='SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0',
         provider=OpenAIProvider(base_url='http://localhost:11434/v1')
     )
     # Create agent with Ollama model
@@ -143,22 +145,23 @@ async def main():
         message_history = trim_history(message_history)
 
         # Stream response
-        tts.say(random.choice(animations))
         full_response = ""
         word_buffer = ""
 
         async with agent.run_stream(user_input, message_history=message_history) as result:
+            tts.say(random.choice(animations))
             async for token in result.stream_text(delta=True):
                 print(token, end='', flush=True)
                 full_response += token
-                word_buffer += token
                 
-                if ' ' in token or '\n' in token or any(char in token for char in '.,!?;:'):
-                    if word_buffer.strip():
-                        tts.say(word_buffer.strip())
-                    word_buffer = ""
+                # If token starts with space, speak the buffered word and start new one
+                if token.startswith(' ') and word_buffer.strip():
+                    tts.say(word_buffer.strip())
+                    word_buffer = token[1:]  # Start new word without space
+                else:
+                    word_buffer += token
 
-            # Handle remaining word in buffer
+            # Speak final word if any
             if word_buffer.strip():
                 tts.say(word_buffer.strip())
 
