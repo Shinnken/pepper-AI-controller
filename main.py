@@ -123,9 +123,10 @@ async def main():
     system_prompt = load_system_message()
 
     ollama_model = OpenAIModel(
-        #model_name='SpeakLeash/bielik-11b-v2.3-instruct:Q4_K_M',
-        model_name='SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0',
-        provider=OpenAIProvider(base_url='http://localhost:11434/v1')
+        model_name='SpeakLeash/bielik-11b-v2.3-instruct:Q8_0',
+        #model_name='SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0',
+        #provider=OpenAIProvider(base_url='http://localhost:11434/v1')
+        provider=OpenAIProvider(base_url='https://intent-possum-hardy.ngrok-free.app/v1')
     )
     # Create agent with Ollama model
     agent = Agent(
@@ -135,8 +136,6 @@ async def main():
 
     # Initialize message history
     message_history = []
-
-    print("Chatbot uruchomiony!")
 
     # Main chat loop
     while True:
@@ -149,13 +148,13 @@ async def main():
         word_buffer = ""
 
         async with agent.run_stream(user_input, message_history=message_history) as result:
-            tts.say(random.choice(animations))
+            #tts.say(random.choice(animations))
             async for token in result.stream_text(delta=True):
                 print(token, end='', flush=True)
                 full_response += token
                 
-                # If token starts with space, speak the buffered word and start new one
-                if token.startswith(' ') and word_buffer.strip():
+                # If token starts with space and buffer has more than 1 character, speak it
+                if token.startswith(' ') and len(word_buffer.strip()) > 1:
                     tts.say(word_buffer.strip())
                     word_buffer = token[1:]  # Start new word without space
                 else:
@@ -163,6 +162,7 @@ async def main():
 
             # Speak final word if any
             if word_buffer.strip():
+                pass
                 tts.say(word_buffer.strip())
 
             print()  # Add newline after streaming
