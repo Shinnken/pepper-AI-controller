@@ -122,7 +122,7 @@ async def main():
     system_prompt = load_system_message()
 
     ollama_model = OpenAIModel(
-        model_name='SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0',
+        model_name='SpeakLeash/bielik-11b-v2.3-instruct:Q4_K_M',
         provider=OpenAIProvider(base_url='http://localhost:11434/v1')
     )
     # Create agent with Ollama model
@@ -145,16 +145,25 @@ async def main():
         # Stream response
         tts.say(random.choice(animations))
         full_response = ""
-        
+        word_buffer = ""
+
         async with agent.run_stream(user_input, message_history=message_history) as result:
             async for token in result.stream_text(delta=True):
                 print(token, end='', flush=True)
-                tts.say(token)
                 full_response += token
-            
+                word_buffer += token
+                
+                if ' ' in token or '\n' in token or any(char in token for char in '.,!?;:'):
+                    if word_buffer.strip():
+                        tts.say(word_buffer.strip())
+                    word_buffer = ""
+
+            # Handle remaining word in buffer
+            if word_buffer.strip():
+                tts.say(word_buffer.strip())
+
             print()  # Add newline after streaming
             message_history.extend(result.new_messages())
-            
 
 
 if __name__ == "__main__":
