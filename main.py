@@ -5,6 +5,8 @@ import asyncio
 import qi
 import sys
 import random
+from SoundReciver import SoundReceiverModule
+from time import sleep
 
 
 # logfire.configure(console=False)
@@ -35,7 +37,7 @@ class AuthenticatorFactory:
         return Authenticator(self.username, self.password)
 
 
-app = qi.Application(sys.argv, url="tcps://192.168.1.110:9503")
+app = qi.Application(sys.argv, url="tcps://192.168.1.28:9503")
 logins = ("nao", "nao")
 factory = AuthenticatorFactory(*logins)
 app.session.setClientAuthenticatorFactory(factory)
@@ -46,6 +48,18 @@ app.start()
 tts = app.session.service("ALAnimatedSpeech")
 motion_service = app.session.service("ALMotion")
 posture_service = app.session.service("ALRobotPosture")
+
+module_name = "SoundProcessingModule"
+sound_module_instance = SoundReceiverModule(app.session, name=module_name)
+
+service_id = app.session.registerService(module_name, sound_module_instance)
+print(f"SoundProcessing module registered with ID: {service_id}")
+
+sleep(1)  # Give some time for the module to register
+
+sound_module_instance.start()
+print("SoundProcessing module started.")
+
 
 # tts = app.session.service("ALTextToSpeech")
 # tts.setLanguage("Polish")
@@ -139,7 +153,13 @@ async def main():
 
     # Main chat loop
     while True:
-        user_input = input("Ty: ")
+        sound_module_instance.setListening()
+        if len(sound_module_instance.stt_output) > 0:
+            user_input = sound_module_instance.stt_output
+            sound_module_instance.stt_output = []
+            sound_module_instance.setNotListening()
+        else:
+            continue
         # Trim history to keep only last 8 messages
         message_history = trim_history(message_history)
 
