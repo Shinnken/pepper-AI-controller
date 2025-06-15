@@ -37,7 +37,7 @@ class AuthenticatorFactory:
         return Authenticator(self.username, self.password)
 
 
-app = qi.Application(sys.argv, url="tcps://192.168.1.28:9503")
+app = qi.Application(sys.argv, url="tcps://192.168.242.133:9503")
 logins = ("nao", "nao")
 factory = AuthenticatorFactory(*logins)
 app.session.setClientAuthenticatorFactory(factory)
@@ -46,6 +46,7 @@ app.start()
 
 
 tts = app.session.service("ALAnimatedSpeech")
+tts.setLanguage("Polish")
 motion_service = app.session.service("ALMotion")
 posture_service = app.session.service("ALRobotPosture")
 

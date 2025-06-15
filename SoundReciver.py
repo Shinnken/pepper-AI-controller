@@ -239,10 +239,10 @@ class SoundReceiverModule(object):
         if not self.is_listening:
             return
         rms = get_rms_energy_from_bytes(buffer)
-        # print("[SoundReceiver] RMS Energy:", rms)
+        print("[SoundReceiver] RMS Energy:", rms)
         # Start accumulating if we detect a loud signal
         if not self.is_accumulating:
-            if rms > 0.006:
+            if rms > 0.09:
                 self.is_accumulating = True
                 self.accumulated_frames = []
                 self.accumulated_frames.append(buffer)
@@ -250,7 +250,7 @@ class SoundReceiverModule(object):
         else:
             # Already accumulating; append the buffer
             self.accumulated_frames.append(buffer)
-            if rms > 0.006:
+            if rms > 0.09:
                 self.lastBelowThresholdTime = None
             else:
                 # If below threshold, check timer
