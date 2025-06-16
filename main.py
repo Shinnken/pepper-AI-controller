@@ -1,3 +1,5 @@
+import time
+
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
@@ -46,6 +48,7 @@ app.start()
 tts = app.session.service("ALAnimatedSpeech")
 motion_service = app.session.service("ALMotion")
 posture_service = app.session.service("ALRobotPosture")
+autonomous_service = app.session.service("ALAutonomousLife")
 
 # tts = app.session.service("ALTextToSpeech")
 # tts.setLanguage("Polish")
@@ -78,21 +81,19 @@ def trim_history(messages, max_size=6):
     return [messages[0]] + messages[-(max_size - 1):]
 
 
-def moveHands(motion_service):
+def grabGun(motion_service):
     # Arms motion from user have always the priority than walk arms motion
-    JointNames = ["LShoulderPitch", "LShoulderRoll", "LElbowYaw", "LElbowRoll", "RShoulderPitch"]
+    JointNames = ["RShoulderPitch", "RElbowRoll", "RWristYaw", "RHand"]
     deg_to_rad = 0.017453
-    Arm1 = [40, 25, -35, -40, 80]
+    Arm1 = [45, 45, 0, 20]
     Arm1 = [x * deg_to_rad for x in Arm1]
-
-    Arm2 = [-10, 50, -80, -80, 10]
+    Arm2 = [50, 50, 0, 20]
     Arm2 = [x * deg_to_rad for x in Arm2]
 
-    pFractionMaxSpeed = 0.5
+    pFractionMaxSpeed = 1.0
 
     motion_service.angleInterpolationWithSpeed(JointNames, Arm1, pFractionMaxSpeed)
     motion_service.angleInterpolationWithSpeed(JointNames, Arm2, pFractionMaxSpeed)
-    motion_service.angleInterpolationWithSpeed(JointNames, Arm1, pFractionMaxSpeed)
 
 
 def moveFingers(motion_service):
@@ -114,6 +115,10 @@ def moveFingers(motion_service):
 
 async def main():
     print("zaczynamy")
+    while True:
+        grabGun(motion_service)
+
+
     # Wake up robot
     # motion_service.wakeUp()
 
@@ -123,7 +128,7 @@ async def main():
     system_prompt = load_system_message()
 
     ollama_model = OpenAIModel(
-        model_name='SpeakLeash/bielik-11b-v2.3-instruct:Q8_0',
+        model_name='SpeakLeash/bielik-11b-v2.1-instruct:Q8_0',
         #model_name='SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0',
         #provider=OpenAIProvider(base_url='http://localhost:11434/v1')
         provider=OpenAIProvider(base_url='https://intent-possum-hardy.ngrok-free.app/v1')
