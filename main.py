@@ -128,8 +128,6 @@ def moveFingers(motion_service):
 
 async def main():
     print("zaczynamy")
-    while True:
-        grabGun(motion_service)
 
     # Load system prompt from file
     system_prompt = load_system_message()
@@ -151,6 +149,7 @@ async def main():
 
     # Main chat loop
     while True:
+        # Listening
         sound_module_instance.setListening()
         if len(sound_module_instance.stt_output) > 0:
             user_input = sound_module_instance.stt_output
@@ -165,6 +164,7 @@ async def main():
         full_response = ""
         word_buffer = ""
 
+        # Generating and saying response
         async with agent.run_stream(user_input, message_history=message_history) as result:
             #tts.say(random.choice(animations))
             async for token in result.stream_text(delta=True):
@@ -177,7 +177,6 @@ async def main():
                     word_buffer = token[1:]  # Start new word without space
                 else:
                     word_buffer += token
-
             # Speak final word if any
             if word_buffer.strip():
                 pass
