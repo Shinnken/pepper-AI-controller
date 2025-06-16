@@ -50,8 +50,6 @@ app.start()
 tts = app.session.service("ALAnimatedSpeech")
 tts.setLanguage("Polish")
 motion_service = app.session.service("ALMotion")
-posture_service = app.session.service("ALRobotPosture")
-autonomous_service = app.session.service("ALAutonomousLife")
 
 module_name = "SoundProcessingModule"
 sound_module_instance = SoundReceiverModule(app.session, name=module_name)
@@ -132,12 +130,6 @@ async def main():
     print("zaczynamy")
     while True:
         grabGun(motion_service)
-
-
-    # Wake up robot
-    # motion_service.wakeUp()
-
-    # motion_service.rest()
 
     # Load system prompt from file
     system_prompt = load_system_message()
