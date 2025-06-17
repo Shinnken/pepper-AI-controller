@@ -1,19 +1,24 @@
+import os
 import time
-
+import logfire
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
+from pydantic_ai.providers.openrouter import OpenRouterProvider
 import asyncio
 import qi
 import sys
 import random
 from SoundReciver import SoundReceiverModule
+from LLM_and_saying import generate_and_say_response, trim_history, load_system_message
 from time import sleep
+from dotenv import load_dotenv, find_dotenv
 
 
-# logfire.configure(console=False)
-# logfire.instrument_pydantic_ai()
+logfire.configure(console=False)
+logfire.instrument_pydantic_ai()
 
+load_dotenv(find_dotenv())
 
 class Authenticator:
 
@@ -39,32 +44,36 @@ class AuthenticatorFactory:
         return Authenticator(self.username, self.password)
 
 
-app = qi.Application(sys.argv, url="tcps://192.168.242.133:9503")
+#app = qi.Application(sys.argv, url="tcps://192.168.242.133:9503")
+app = qi.Application(sys.argv, url="tcps://192.168.1.110:9503")
 logins = ("nao", "nao")
 factory = AuthenticatorFactory(*logins)
 app.session.setClientAuthenticatorFactory(factory)
 app.start()
 
-
-
+speech_service = app.session.service("ALTextToSpeech")
+speech_service.setLanguage("Polish")
+speech_service.setParameter("speed", 200)
 tts = app.session.service("ALAnimatedSpeech")
-tts.setLanguage("Polish")
 motion_service = app.session.service("ALMotion")
 
-module_name = "SoundProcessingModule"
-sound_module_instance = SoundReceiverModule(app.session, name=module_name)
-
-service_id = app.session.registerService(module_name, sound_module_instance)
-print(f"SoundProcessing module registered with ID: {service_id}")
-
+sound_module_instance = SoundReceiverModule(app.session, name="SoundProcessingModule")
+service_id = app.session.registerService("SoundProcessingModule", sound_module_instance)
 sleep(1)  # Give some time for the module to register
 
 sound_module_instance.start()
-print("SoundProcessing module started.")
 
+ollama_model = OpenAIModel(
+        model_name='SpeakLeash/bielik-11b-v2.1-instruct:Q8_0',
+        #model_name='SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0',
+        #provider=OpenAIProvider(base_url='http://localhost:11434/v1')
+        provider=OpenAIProvider(base_url='https://intent-possum-hardy.ngrok-free.app/v1')
+    )
 
-# tts = app.session.service("ALTextToSpeech")
-# tts.setLanguage("Polish")
+openrouter_model = OpenAIModel(
+    'qwen/qwen2.5-vl-32b-instruct',
+    provider=OpenRouterProvider(api_key=os.getenv('OPENROUTER_API_KEY')),
+)
 
 animations = [
     "^start(animations/Stand/Gestures/Hey_1)",
@@ -79,19 +88,6 @@ animations = [
     "^start(animations/Stand/Gestures/BodyTalk_3)",
     "^start(animations/Stand/Gestures/BodyTalk_4)",
 ]
-def load_system_message():
-    """Load system message from .prompt file"""
-    with open('system_message.prompt', 'r', encoding='utf-8') as f:
-        return f.read().strip()
-
-
-def trim_history(messages, max_size=6):
-    """Keep system message + last max_size conversation messages"""
-    if len(messages) <= max_size:
-        return messages
-
-    # Zachowaj pierwszą wiadomość (zawiera system prompt) + ostatnie (max_size-1) wiadomości
-    return [messages[0]] + messages[-(max_size - 1):]
 
 
 def grabGun(motion_service):
@@ -126,21 +122,19 @@ def moveFingers(motion_service):
     motion_service.angleInterpolationWithSpeed(JointNames, Arm1, pFractionMaxSpeed)
 
 
+
+
 async def main():
-    print("zaczynamy")
+    print("Start")
+    #motion_service.moveTo(0.5, 0.0, 0.0)  # move forward 0.5 m
+    motion_service.moveTo(0.0, 0.0, 1.5708)  # rotate 1.5708 rad (≈90°)
 
     # Load system prompt from file
     system_prompt = load_system_message()
 
-    ollama_model = OpenAIModel(
-        model_name='SpeakLeash/bielik-11b-v2.1-instruct:Q8_0',
-        #model_name='SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0',
-        #provider=OpenAIProvider(base_url='http://localhost:11434/v1')
-        provider=OpenAIProvider(base_url='https://intent-possum-hardy.ngrok-free.app/v1')
-    )
     # Create agent with Ollama model
     agent = Agent(
-        ollama_model,
+        openrouter_model,
         system_prompt=system_prompt
     )
 
@@ -160,30 +154,10 @@ async def main():
         # Trim history to keep only last 8 messages
         message_history = trim_history(message_history)
 
-        # Stream response
-        full_response = ""
-        word_buffer = ""
+        llm_response = await generate_and_say_response(agent, user_input, message_history, tts)
 
-        # Generating and saying response
-        async with agent.run_stream(user_input, message_history=message_history) as result:
-            #tts.say(random.choice(animations))
-            async for token in result.stream_text(delta=True):
-                print(token, end='', flush=True)
-                full_response += token
-                
-                # If token starts with space and buffer has more than 1 character, speak it
-                if token.startswith(' ') and len(word_buffer.strip()) > 1:
-                    tts.say(word_buffer.strip())
-                    word_buffer = token[1:]  # Start new word without space
-                else:
-                    word_buffer += token
-            # Speak final word if any
-            if word_buffer.strip():
-                pass
-                tts.say(word_buffer.strip())
-
-            print()  # Add newline after streaming
-            message_history.extend(result.new_messages())
+        print()  # Add newline after streaming
+        message_history.extend(llm_response)
 
 
 if __name__ == "__main__":

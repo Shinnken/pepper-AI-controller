@@ -4,3 +4,4 @@ env/
 __pycache__/
 .idea/
 .clean_coder/
+yolov8n.pt

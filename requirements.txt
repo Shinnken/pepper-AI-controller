@@ -2,3 +2,6 @@ pydantic-ai[logfire]==0.2.14
 qi==3.1.5
 opencv-python>=4.8.0
 ultralytics>=8.0.0
+SpeechRecognition
+numpy
+PyAudio
