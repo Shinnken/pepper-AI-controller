@@ -85,7 +85,7 @@ class SoundReceiverModule(object):
     """
     A NAOqi module to subscribe to ALAudioDevice and process microphone data.
     """
-    def __init__(self, session, name="SoundReceiverModule"):
+    def __init__(self, session, name="SoundReceiverModule", thresholdRMSEnergy = 0.03):
         super(SoundReceiverModule, self).__init__()
         self.session = session
         self.audio_service = session.service("ALAudioDevice")
@@ -102,7 +102,7 @@ class SoundReceiverModule(object):
         self.r = sr.Recognizer()
         self.is_listening = False
         self.stt_output = []  # List to store STT output
-        self.thresholdRMSEnergy = 0.09
+        self.thresholdRMSEnergy = thresholdRMSEnergy
 
     def start(self):
         """

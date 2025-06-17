@@ -1,25 +1,17 @@
-import os
-import time
-import logfire
-from pydantic_ai import Agent
-from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai.providers.openai import OpenAIProvider
-from pydantic_ai.providers.openrouter import OpenRouterProvider
 import asyncio
 import qi
 import sys
 import random
 from SoundReciver import SoundReceiverModule
-from LLM_and_saying import generate_and_say_response, trim_history, load_system_message
+from LLM_and_saying import generate_and_say_response, trim_history, init_agent
 from time import sleep
-from dotenv import load_dotenv, find_dotenv
 
 
-logfire.configure(console=False)
-logfire.instrument_pydantic_ai()
-
-load_dotenv(find_dotenv())
-
+# inne parametry dla nao i peppera, sprawdzić w developer guidzie
+CAMERA_INDEX = 0
+RESOLUTION_INDEX = 2
+COLORSPACE_INDEX = 11
+FRAMERATE = 15
 class Authenticator:
 
     def __init__(self, username, password):
@@ -46,6 +38,15 @@ class AuthenticatorFactory:
 
 #app = qi.Application(sys.argv, url="tcps://192.168.242.133:9503")
 app = qi.Application(sys.argv, url="tcps://192.168.1.110:9503")
+# delete_subs("kamera") # needed for camera initialization
+# self.vid_handle = self.session.service("ALVideoDevice").subscribeCamera(
+#     "kamera",
+#     CAMERA_INDEX,
+#     RESOLUTION_INDEX,
+#     COLORSPACE_INDEX,
+#     FRAMERATE
+#
+# )
 logins = ("nao", "nao")
 factory = AuthenticatorFactory(*logins)
 app.session.setClientAuthenticatorFactory(factory)
@@ -57,23 +58,11 @@ speech_service.setParameter("speed", 200)
 tts = app.session.service("ALAnimatedSpeech")
 motion_service = app.session.service("ALMotion")
 
-sound_module_instance = SoundReceiverModule(app.session, name="SoundProcessingModule")
+sound_module_instance = SoundReceiverModule(app.session, name="SoundProcessingModule", thresholdRMSEnergy = 0.03)
 service_id = app.session.registerService("SoundProcessingModule", sound_module_instance)
 sleep(1)  # Give some time for the module to register
 
 sound_module_instance.start()
-
-ollama_model = OpenAIModel(
-        model_name='SpeakLeash/bielik-11b-v2.1-instruct:Q8_0',
-        #model_name='SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0',
-        #provider=OpenAIProvider(base_url='http://localhost:11434/v1')
-        provider=OpenAIProvider(base_url='https://intent-possum-hardy.ngrok-free.app/v1')
-    )
-
-openrouter_model = OpenAIModel(
-    'qwen/qwen2.5-vl-32b-instruct',
-    provider=OpenRouterProvider(api_key=os.getenv('OPENROUTER_API_KEY')),
-)
 
 animations = [
     "^start(animations/Stand/Gestures/Hey_1)",
@@ -122,21 +111,20 @@ def moveFingers(motion_service):
     motion_service.angleInterpolationWithSpeed(JointNames, Arm1, pFractionMaxSpeed)
 
 
+def delete_subs(name):
+    all_subscribers = app.session.service("ALVideoDevice").getSubscribers()
+    sub_to_delete = [subscriber for subscriber in all_subscribers if unicode(name, "utf-8") in unicode(subscriber, "utf-8")] # type: ignore
+    for sub in sub_to_delete:
+        app.session.service("ALVideoDevice").unsubscribe(sub)
 
 
 async def main():
     print("Start")
     #motion_service.moveTo(0.5, 0.0, 0.0)  # move forward 0.5 m
     motion_service.moveTo(0.0, 0.0, 1.5708)  # rotate 1.5708 rad (≈90°)
+    #frame_data = self.session.service("ALVideoDevice").getImageRemote(self.vid_handle) # get frame
 
-    # Load system prompt from file
-    system_prompt = load_system_message()
-
-    # Create agent with Ollama model
-    agent = Agent(
-        openrouter_model,
-        system_prompt=system_prompt
-    )
+    agent = init_agent(motion_service)
 
     # Initialize message history
     message_history = []

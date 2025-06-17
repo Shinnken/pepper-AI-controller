@@ -1,3 +1,31 @@
+import os
+from pydantic_ai import Agent
+from pydantic_ai import RunContext
+from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.providers.openai import OpenAIProvider
+from pydantic_ai.providers.openrouter import OpenRouterProvider
+from dotenv import load_dotenv, find_dotenv
+from typing import Any
+import logfire
+
+
+logfire.configure(console=False)
+logfire.instrument_pydantic_ai()
+
+load_dotenv(find_dotenv())
+
+ollama_model = OpenAIModel(
+        model_name='SpeakLeash/bielik-11b-v2.1-instruct:Q8_0',
+        #model_name='SpeakLeash/bielik-4.5b-v3.0-instruct:Q8_0',
+        #provider=OpenAIProvider(base_url='http://localhost:11434/v1')
+        provider=OpenAIProvider(base_url='https://intent-possum-hardy.ngrok-free.app/v1')
+    )
+
+openrouter_model = OpenAIModel(
+    'openai/gpt-4.1',
+    provider=OpenRouterProvider(api_key=os.getenv('OPENROUTER_API_KEY')),
+)
+
 
 async def generate_and_say_response(agent, user_input, message_history, speech_service):
     full_response = ""
@@ -40,3 +68,49 @@ def trim_history(messages, max_size=6):
 
     # Zachowaj pierwszą wiadomość (zawiera system prompt) + ostatnie (max_size-1) wiadomości
     return [messages[0]] + messages[-(max_size - 1):]
+
+
+def move_forward_tool(motion_service):
+    """Create move forward tool for the agent"""
+    def move_forward(ctx: RunContext[Any], meters: float) -> str:
+        """Move the robot forward by specified meters (max 2 meters)"""
+        print(f"Moving forward {meters} meters")
+        motion_service.wakeUp()
+        if meters > 2:
+            meters = 2
+        elif meters < 0:
+            meters = 0
+
+        motion_service.moveTo(meters, 0.0, 0.0)
+        return f"Moved forward {meters} meters"
+    return move_forward
+
+
+def turn_robot_tool(motion_service):
+    """Create turn robot tool for the agent"""
+    def turn_robot(ctx: RunContext[Any], degrees: float) -> str:
+        """Turn the robot by specified angle in degrees (positive = left, negative = right)"""
+        # Convert degrees to radians
+        radians = degrees * 0.017453
+        motion_service.moveTo(0.0, 0.0, radians)
+        return f"Turned by {degrees} degrees"
+    return turn_robot
+
+
+def init_agent(motion_service):
+    """Initialize the agent with system prompt and movement tools"""
+    # Load system prompt from file
+    system_prompt = load_system_message()
+
+    # Create agent with OpenRouter model
+    agent = Agent(
+        openrouter_model,
+        system_prompt=system_prompt
+    )
+    
+    # Add movement tools
+    agent.tool(move_forward_tool(motion_service))
+    agent.tool(turn_robot_tool(motion_service))
+
+    return agent
+
