@@ -102,6 +102,7 @@ class SoundReceiverModule(object):
         self.r = sr.Recognizer()
         self.is_listening = False
         self.stt_output = []  # List to store STT output
+        self.thresholdRMSEnergy = 0.09
 
     def start(self):
         """
@@ -242,7 +243,7 @@ class SoundReceiverModule(object):
         print("[SoundReceiver] RMS Energy:", rms)
         # Start accumulating if we detect a loud signal
         if not self.is_accumulating:
-            if rms > 0.09:
+            if rms > self.thresholdRMSEnergy:
                 self.is_accumulating = True
                 self.accumulated_frames = []
                 self.accumulated_frames.append(buffer)
@@ -250,7 +251,7 @@ class SoundReceiverModule(object):
         else:
             # Already accumulating; append the buffer
             self.accumulated_frames.append(buffer)
-            if rms > 0.09:
+            if rms > self.thresholdRMSEnergy:
                 self.lastBelowThresholdTime = None
             else:
                 # If below threshold, check timer
@@ -270,4 +271,3 @@ class SoundReceiverModule(object):
                             target=self._processSpeechRecognition,
                             args=(full_recording,)
                         ).start()
-
