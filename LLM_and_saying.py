@@ -22,7 +22,7 @@ ollama_model = OpenAIModel(
     )
 
 openrouter_model = OpenAIModel(
-    'openai/gpt-4.1',
+    'qwen/qwen3-32b',
     provider=OpenRouterProvider(api_key=os.getenv('OPENROUTER_API_KEY')),
 )
 
@@ -72,28 +72,29 @@ def trim_history(messages, max_size=6):
 
 def move_forward_tool(motion_service):
     """Create move forward tool for the agent"""
-    def move_forward(ctx: RunContext[Any], meters: float) -> str:
+    def move_forward(ctx: RunContext[Any], meters: float):
         """Move the robot forward by specified meters (max 2 meters)"""
-        print(f"Moving forward {meters} meters")
+
         motion_service.wakeUp()
         if meters > 2:
             meters = 2
         elif meters < 0:
             meters = 0
 
+        print(f"Moving forward {meters} meters")
         motion_service.moveTo(meters, 0.0, 0.0)
-        return f"Moved forward {meters} meters"
+
     return move_forward
 
 
 def turn_robot_tool(motion_service):
     """Create turn robot tool for the agent"""
-    def turn_robot(ctx: RunContext[Any], degrees: float) -> str:
+    def turn_robot(ctx: RunContext[Any], degrees: float):
         """Turn the robot by specified angle in degrees (positive = left, negative = right)"""
         # Convert degrees to radians
         radians = degrees * 0.017453
         motion_service.moveTo(0.0, 0.0, radians)
-        return f"Turned by {degrees} degrees"
+
     return turn_robot
 
 
