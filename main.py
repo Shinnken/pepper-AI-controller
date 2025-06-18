@@ -1,52 +1,34 @@
 import asyncio
 import qi
 import sys
-import random
 from SoundReciver import SoundReceiverModule
 from LLM_and_saying import generate_and_say_response, trim_history, init_agent
+from robot_auth import AuthenticatorFactory
+from motion import moveFingers, grabGun, lookForward
+from camera import take_picture
 from time import sleep
 
 
 # inne parametry dla nao i peppera, sprawdzić w developer guidzie
 CAMERA_INDEX = 0
-RESOLUTION_INDEX = 2
+RESOLUTION_INDEX = 3
 COLORSPACE_INDEX = 11
-FRAMERATE = 15
-class Authenticator:
-
-    def __init__(self, username, password):
-        self.username = username
-        self.password = password
-
-    # This method is expected by libqi and must return a dictionary containing
-    # login information with the keys 'user' and 'token'.
-    def initialAuthData(self):
-        return {'user': self.username, 'token': self.password}
+FRAMERATE = 5
 
 
-class AuthenticatorFactory:
 
-    def __init__(self, username, password):
-        self.username = username
-        self.password = password
+def delete_subs(name, video_service):
+    all_subscribers = video_service.getSubscribers()
+    sub_to_delete = [subscriber for subscriber in all_subscribers if name in str(subscriber)] # type: ignore
+    for sub in sub_to_delete:
+        app.session.service("ALVideoDevice").unsubscribe(sub)
 
-    # This method is expected by libqi and must return an object with at least
-    # the `initialAuthData` method.
-    def newAuthenticator(self):
-        return Authenticator(self.username, self.password)
+    return video_service
 
 
-#app = qi.Application(sys.argv, url="tcps://192.168.1.110:9503")    # Pepper
-app = qi.Application(sys.argv, url="tcps://192.168.1.104:9503")    # Nao
-# delete_subs("kamera") # needed for camera initialization
-# self.vid_handle = self.session.service("ALVideoDevice").subscribeCamera(
-#     "kamera",
-#     CAMERA_INDEX,
-#     RESOLUTION_INDEX,
-#     COLORSPACE_INDEX,
-#     FRAMERATE
-#
-# )
+app = qi.Application(sys.argv, url="tcps://192.168.1.110:9503")    # Pepper
+#app = qi.Application(sys.argv, url="tcps://192.168.1.104:9503")    # Nao
+
 logins = ("nao", "nao")
 factory = AuthenticatorFactory(*logins)
 app.session.setClientAuthenticatorFactory(factory)
@@ -55,24 +37,33 @@ app.start()
 app.session.service("ALTextToSpeech").setLanguage("Polish")
 tts = app.session.service("ALAnimatedSpeech")
 motion_service = app.session.service("ALMotion")
+video_service = app.session.service("ALVideoDevice")
+
+video_service = delete_subs("kamera", video_service) # needed for camera initialization
+vid_handle = video_service.subscribeCamera(
+    "kamera",
+    CAMERA_INDEX,
+    RESOLUTION_INDEX,
+    COLORSPACE_INDEX,
+    FRAMERATE
+
+)
 
 sound_module_instance = SoundReceiverModule(app.session, name="SoundProcessingModule", thresholdRMSEnergy = 0.03)
 app.session.registerService("SoundProcessingModule", sound_module_instance)
 sleep(1)  # Give some time for the module to register
 sound_module_instance.start()
 
-def delete_subs(name):
-    all_subscribers = app.session.service("ALVideoDevice").getSubscribers()
-    sub_to_delete = [subscriber for subscriber in all_subscribers if unicode(name, "utf-8") in unicode(subscriber, "utf-8")] # type: ignore
-    for sub in sub_to_delete:
-        app.session.service("ALVideoDevice").unsubscribe(sub)
+
 
 
 async def main():
     print("Start")
-    #frame_data = self.session.service("ALVideoDevice").getImageRemote(self.vid_handle) # get frame
 
-    agent = init_agent(motion_service)
+    lookForward(motion_service)
+
+
+    agent = init_agent(motion_service, prompt_name="Narwicki")
 
     # Initialize message history
     message_history = []
@@ -87,6 +78,8 @@ async def main():
             sound_module_instance.setNotListening()
         else:
             continue
+
+        take_picture(video_service, vid_handle)
 
         # Trim history to keep only last 8 messages
         message_history = trim_history(message_history)

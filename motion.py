@@ -1,3 +1,6 @@
+import time
+
+
 def grabGun(motion_service):
     # Arms motion from user have always the priority than walk arms motion
     JointNames = ["RShoulderPitch", "RElbowRoll", "RWristYaw", "RHand"]
@@ -11,6 +14,9 @@ def grabGun(motion_service):
 
     motion_service.angleInterpolationWithSpeed(JointNames, Arm1, pFractionMaxSpeed)
     motion_service.angleInterpolationWithSpeed(JointNames, Arm2, pFractionMaxSpeed)
+    #motion_service.setAngles(JointNames, Arm1, pFractionMaxSpeed)
+    motion_service.setStiffnesses("RArm", 0.0)
+    motion_service.setStiffnesses("RHand", 0.0)
 
 
 def moveFingers(motion_service):
@@ -28,3 +34,17 @@ def moveFingers(motion_service):
     motion_service.angleInterpolationWithSpeed(JointNames, Arm1, pFractionMaxSpeed)
     motion_service.angleInterpolationWithSpeed(JointNames, Arm2, pFractionMaxSpeed)
     motion_service.angleInterpolationWithSpeed(JointNames, Arm1, pFractionMaxSpeed)
+
+
+def lookForward(motion_service):
+    # Arms motion from user have always the priority than walk arms motion
+    JointNames = ["HeadYaw", "HeadPitch"]
+    deg_to_rad = 0.017453
+    Angles = [0, 5]
+    Angles = [x * deg_to_rad for x in Angles]
+
+    pFractionMaxSpeed = 0.8
+    motion_service.setStiffnesses("Head", 1.0)
+    time.sleep(0.5)
+    motion_service.angleInterpolationWithSpeed(JointNames, Angles, pFractionMaxSpeed)
+    motion_service.setStiffnesses("Head", 0.0)
