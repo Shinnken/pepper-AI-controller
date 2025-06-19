@@ -22,8 +22,8 @@ ollama_model = OpenAIModel(
     )
 
 openrouter_model = OpenAIModel(
-    #'qwen/qwen3-32b',
-    'meta-llama/llama-3.3-70b-instruct',
+    'openai/gpt-4.1-mini',
+    #'meta-llama/llama-3.3-70b-instruct',
     provider=OpenRouterProvider(api_key=os.getenv('OPENROUTER_API_KEY')),
 )
 
@@ -56,10 +56,12 @@ async def generate_and_say_response(agent, user_input, message_history, speech_s
         return result.new_messages()
 
 
-def load_system_message(prompt_name='system_message'):
+def load_system_message(prompt_name='system_message', language='Polski'):
     """Load system message from .prompt file"""
     with open(f'prompts/{prompt_name}.prompt', 'r', encoding='utf-8') as f:
-        return f.read().strip()
+        system_prompt = f.read().strip()
+    system_prompt += f"\n\nRespond in {language}."
+    return system_prompt
 
 
 def trim_history(messages, max_size=6):
@@ -92,6 +94,7 @@ def turn_robot_tool(motion_service):
     """Create turn robot tool for the agent"""
     def turn_robot(ctx: RunContext[Any], degrees: float):
         """Turn the robot by specified angle in degrees (positive = left, negative = right)"""
+        print(f"Turning {degrees} degrees")
         # Convert degrees to radians
         radians = degrees * 0.017453
         motion_service.moveTo(0.0, 0.0, radians)
@@ -99,10 +102,10 @@ def turn_robot_tool(motion_service):
     return turn_robot
 
 
-def init_agent(motion_service, prompt_name='system_message'):
+def init_agent(motion_service, prompt_name='system_message', language='Polski'):
     """Initialize the agent with system prompt and movement tools"""
     # Load system prompt from file
-    system_prompt = load_system_message(prompt_name)
+    system_prompt = load_system_message(prompt_name=prompt_name, language=language)
 
     # Create agent with OpenRouter model
     agent = Agent(
@@ -111,8 +114,8 @@ def init_agent(motion_service, prompt_name='system_message'):
     )
     
     # Add movement tools
-    #agent.tool(move_forward_tool(motion_service))
-    #agent.tool(turn_robot_tool(motion_service))
+    agent.tool(move_forward_tool(motion_service))
+    agent.tool(turn_robot_tool(motion_service))
 
     return agent
 

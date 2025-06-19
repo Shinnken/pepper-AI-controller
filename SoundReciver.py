@@ -85,7 +85,7 @@ class SoundReceiverModule(object):
     """
     A NAOqi module to subscribe to ALAudioDevice and process microphone data.
     """
-    def __init__(self, session, name="SoundReceiverModule", thresholdRMSEnergy = 0.03):
+    def __init__(self, session, name="SoundReceiverModule", thresholdRMSEnergy = 0.03, language="Polski"):
         super(SoundReceiverModule, self).__init__()
         self.session = session
         self.audio_service = session.service("ALAudioDevice")
@@ -103,6 +103,8 @@ class SoundReceiverModule(object):
         self.is_listening = False
         self.stt_output = []  # List to store STT output
         self.thresholdRMSEnergy = thresholdRMSEnergy
+        self.language_map = {"Polski": "pl-PL", "English": "en-US"}
+        self.stt_language = self.language_map.get(language, "pl-PL")
 
     def start(self):
         """
@@ -212,7 +214,7 @@ class SoundReceiverModule(object):
             audio_data = self.r.record(source)
             try:
                 print("[SoundReceiver] Recognizing speech...")
-                text = self.r.recognize_google(audio_data, language='pl-PL', pfilter=1)
+                text = self.r.recognize_google(audio_data, language=self.stt_language, pfilter=1)
                 print("[SoundReceiver] Recognized text:", text)
                 self.stt_output = text
             except sr.UnknownValueError:
@@ -234,13 +236,13 @@ class SoundReceiverModule(object):
         self.is_accumulating = False
         self.accumulated_frames = []
         self.lastBelowThresholdTime = None
-        print("[SoundReceiver] Stopped listening and cleared accumulated frames.")
+        #print("[SoundReceiver] Stopped listening and cleared accumulated frames.")
 
     def processRemote(self, nbOfChannels, nbrOfSamplesByChannel, timestamp, buffer):
         if not self.is_listening:
             return
         rms = get_rms_energy_from_bytes(buffer)
-        #print("[SoundReceiver] RMS Energy:", rms)
+        print("[SoundReceiver] RMS Energy:", rms)
         # Start accumulating if we detect a loud signal
         if not self.is_accumulating:
             if rms > self.thresholdRMSEnergy:
