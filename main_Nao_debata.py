@@ -71,10 +71,7 @@ def delete_subs(name):
 
 async def main():
     print("Start")
-    posture_service.goToPosture("StandInit", 0.5)
-    #frame_data = self.session.service("ALVideoDevice").getImageRemote(self.vid_handle) # get frame
-
-    agent = init_agent(motion_service, prompt_name="Tarnowski")
+    agent = init_agent(motion_service, video_service=None, video_handle=None, prompt_name="Tarnowski", language="Polski")
 
     # Initialize message history
     message_history = []
@@ -83,9 +80,9 @@ async def main():
     while True:
         # Listening
         sound_module_instance.setListening()
-        if len(sound_module_instance.stt_output) > 0:
+        if sound_module_instance.stt_output:
             user_input = sound_module_instance.stt_output
-            sound_module_instance.stt_output = []
+            sound_module_instance.stt_output = None
             sound_module_instance.setNotListening()
         else:
             continue
@@ -93,7 +90,7 @@ async def main():
         # Trim history to keep only last 8 messages
         message_history = trim_history(message_history)
 
-        llm_response = await generate_and_say_response(agent, user_input, message_history, tts)
+        llm_response = await generate_and_say_response(agent, user_input, message_history, tts, sound_module_instance)
 
         print()  # Add newline after streaming
         message_history.extend(llm_response)
