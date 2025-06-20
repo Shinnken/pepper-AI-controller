@@ -6,3 +6,4 @@ __pycache__/
 .clean_coder/
 yolov8n.pt
 .env
+pepper_image*
