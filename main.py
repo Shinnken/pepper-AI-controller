@@ -54,7 +54,7 @@ vid_handle = video_service.subscribeCamera(
 
 )
 
-sound_module_instance = SoundReceiverModule(app.session, name="SoundProcessingModule", thresholdRMSEnergy = 0.03)
+sound_module_instance = SoundReceiverModule(app.session, name="SoundProcessingModule", thresholdRMSEnergy = 0.04)
 app.session.registerService("SoundProcessingModule", sound_module_instance)
 sleep(1)  # Give some time for the module to register
 sound_module_instance.start()
@@ -62,9 +62,9 @@ sound_module_instance.start()
 
 async def main():
     print("Start")
-    lookForward(motion_service)
+    #lookForward(motion_service)
 
-    agent = init_agent(motion_service, language=LANGUAGE)
+    agent = init_agent(motion_service, video_service, vid_handle, language=LANGUAGE)
 
     # Initialize message history
     message_history = []
@@ -84,6 +84,11 @@ async def main():
         # Wait a bit for speech input
         await asyncio.sleep(0.1)
 
+        print(f"During listening or procesing: {sound_module_instance.is_accumulating_or_recognizing_speech}")
+        # Do not do anything while listening
+        if sound_module_instance.is_accumulating_or_recognizing_speech:
+            continue
+
         # Capture image
         camera_view_bytes = take_picture(video_service, vid_handle)
         image_content = BinaryContent(data=camera_view_bytes, media_type='image/jpeg')
@@ -96,13 +101,13 @@ async def main():
             sound_module_instance.setNotListening()
 
         user_input = [
-            f"Human voice commend: {user_text}" if user_text else "Camera view:",
+            f"Human voice commend: '{user_text}'.\n\nThat's what you see on the front:" if user_text else "That's what you see on the front:",
             image_content
         ]
 
         #message_history = trim_history(message_history, max_size=16)
 
-        llm_response = await generate_and_say_response(agent, user_input, message_history, tts)
+        llm_response = await generate_and_say_response(agent, user_input, message_history, tts, sound_module_instance)
 
         print()  # Add newline after streaming
         message_history.extend(llm_response)

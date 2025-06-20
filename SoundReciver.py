@@ -98,6 +98,7 @@ class SoundReceiverModule(object):
         self.energy = 0.0
         self.accumulated_frames = []
         self.is_accumulating = False
+        self.is_accumulating_or_recognizing_speech = False
         self.lastBelowThresholdTime = None
         self.r = sr.Recognizer()
         self.is_listening = False
@@ -221,6 +222,7 @@ class SoundReceiverModule(object):
                 print("[SoundReceiver] Could not understand audio")
             except sr.RequestError as e:
                 print("[SoundReceiver] Speech Recognition request error:", e)
+            self.is_accumulating_or_recognizing_speech = False
 
     def setListening(self):
         """
@@ -247,6 +249,7 @@ class SoundReceiverModule(object):
         if not self.is_accumulating:
             if rms > self.thresholdRMSEnergy:
                 self.is_accumulating = True
+                self.is_accumulating_or_recognizing_speech = True
                 self.accumulated_frames = []
                 self.accumulated_frames.append(buffer)
                 self.lastBelowThresholdTime = None

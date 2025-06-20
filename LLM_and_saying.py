@@ -1,12 +1,12 @@
 import os
-from pydantic_ai import Agent
-from pydantic_ai import RunContext
+from pydantic_ai import Agent, RunContext, BinaryContent
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.providers.openrouter import OpenRouterProvider
 from dotenv import load_dotenv, find_dotenv
 from typing import Any
 import logfire
+import time
 
 
 logfire.configure(console=False)
@@ -28,9 +28,9 @@ openrouter_model = OpenAIModel(
 )
 
 
-async def generate_and_say_response(agent, user_input, message_history, speech_service):
+async def generate_and_say_response(agent, user_input, message_history, speech_service, sound_module):
     full_response = ""
-    word_buffer = ""
+    sentence_buffer = ""
     # Generating and saying response
     async with agent.run_stream(user_input, message_history=message_history) as result:
         # tts.say(random.choice(animations))
@@ -41,17 +41,24 @@ async def generate_and_say_response(agent, user_input, message_history, speech_s
 
             print(token, end='', flush=True)
             full_response += token
+            sentence_buffer += token
 
-            # If token starts with space and buffer has more than 1 character, speak it
-            if token.startswith(' ') and len(word_buffer.strip()) > 1:
-                speech_service.say(word_buffer.strip())
-                word_buffer = token[1:]  # Start new word without space
-            else:
-                word_buffer += token
-        # Speak final word if any
-        if word_buffer.strip():
-            pass
-            speech_service.say(word_buffer.strip())
+            # Do not listen while talking
+            if sound_module.is_listening:
+                sound_module.setNotListening()
+            
+            # If token ends with sentence delimiter, speak the buffered sentence
+            if token.endswith('.') or token.endswith('!') or token.endswith('?') or token.endswith(','):
+                if sentence_buffer.strip():
+                    speech_service.say(sentence_buffer.strip())
+                    sentence_buffer = ""
+        
+        # Speak final sentence if any
+        if sentence_buffer.strip():
+            speech_service.say(sentence_buffer.strip())
+
+        # set listening back
+        sound_module.setListening()
 
         return result.new_messages()
 
@@ -78,13 +85,13 @@ def move_forward_tool(motion_service):
     def move_forward(ctx: RunContext[Any], meters: float):
         """Move the robot forward by specified meters (max 2 meters)"""
 
-        motion_service.wakeUp()
         if meters > 2:
             meters = 2
         elif meters < 0:
             meters = 0
 
         print(f"Moving forward {meters} meters")
+        motion_service.wakeUp()
         motion_service.moveTo(meters, 0.0, 0.0)
 
     return move_forward
@@ -97,12 +104,46 @@ def turn_robot_tool(motion_service):
         print(f"Turning {degrees} degrees")
         # Convert degrees to radians
         radians = degrees * 0.017453
+        motion_service.wakeUp()
         motion_service.moveTo(0.0, 0.0, radians)
 
     return turn_robot
 
+def look_around_tool(motion_service, video_service, video_handle):
+    """Create look around tool for the agent"""
+    def look_around(ctx: RunContext[Any]):
+        """Look around yourself to understand envinronment. Use that tool when you can't see the thing you are looking for"""
+        from motion import turnHead
+        from camera import take_picture
+        
+        print("Looking around - taking 3 photos at different angles")
+        
+        photos = []
+        angles = [120, -120, 0]
+        
+        for angle in angles:
+            turnHead(motion_service, angle)
+            time.sleep(1)  # Wait for head to move
+            
+            # Take picture with appropriate center angle for markers
+            photo_bytes = take_picture(video_service, video_handle, center_angle=angle)
+            photo_content = BinaryContent(data=photo_bytes, media_type='image/jpeg')
+            photos.append(photo_content)
+        # placing middle photo (last taken) in the middle of the list
+        photos[1], photos[2] = photos[2], photos[1]
+        
+        # Return head to center position
+        print("Returning head to center position")
+        turnHead(motion_service, 0)
+        
+        return photos
+    
+    return look_around
 
-def init_agent(motion_service, prompt_name='system_message', language='Polski'):
+
+
+
+def init_agent(motion_service, video_service, video_handle, prompt_name='system_message', language='Polski'):
     """Initialize the agent with system prompt and movement tools"""
     # Load system prompt from file
     system_prompt = load_system_message(prompt_name=prompt_name, language=language)
@@ -112,10 +153,10 @@ def init_agent(motion_service, prompt_name='system_message', language='Polski'):
         openrouter_model,
         system_prompt=system_prompt
     )
-    
+
     # Add movement tools
     agent.tool(move_forward_tool(motion_service))
     agent.tool(turn_robot_tool(motion_service))
+    agent.tool(look_around_tool(motion_service, video_service, video_handle))
 
     return agent
-

@@ -1,4 +1,4 @@
-import time
+
 
 
 def grabGun(motion_service):
@@ -49,3 +49,14 @@ def lookForward(motion_service):
     motion_service.wakeUp()
     motion_service.angleInterpolationWithSpeed(JointNames, Angles, pFractionMaxSpeed)
     #motion_service.setStiffnesses("Head", 0.0)
+
+
+def turnHead(motion_service, angle_degrees):
+    """Turn head to specified angle in degrees"""
+    JointNames = ["HeadYaw"]
+    deg_to_rad = 0.017453
+    Angles = [angle_degrees * deg_to_rad]
+    
+    pFractionMaxSpeed = 1.0
+    motion_service.wakeUp()
+    motion_service.angleInterpolationWithSpeed(JointNames, Angles, pFractionMaxSpeed)
