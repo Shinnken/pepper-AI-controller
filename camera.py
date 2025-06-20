@@ -7,12 +7,16 @@ def draw_angle_markers(image, center_angle=0):
     image_height, image_width = image.shape[:2]
 
     # Calculate visible angles based on center_angle
-    visible_range = 40  # 40 degrees each side
+    visible_range = 35  # 35 degrees each side
     min_angle = center_angle - visible_range
     max_angle = center_angle + visible_range
-    
-    # Generate angle markers within visible range
-    angles = [min_angle + i*10 for i in range(9)]  # 9 markers, 10 degrees apart
+
+    # Generate angle markers within visible range, with 5-degree margins
+    angles = []
+    current = min_angle + 5  # Start 5 degrees from edge
+    while current <= max_angle - 5:  # End 5 degrees from edge
+        angles.append(current)
+        current += 10
 
     # Calculate y position for markers (closer to bottom to take less photo space)
     y_position = image_height - 25

@@ -115,27 +115,25 @@ def look_around_tool(motion_service, video_service, video_handle):
         """Look around yourself to understand envinronment. Use that tool when you can't see the thing you are looking for"""
         from motion import turnHead
         from camera import take_picture
-        
-        print("Looking around - taking 3 photos at different angles")
-        
+
+        print("Looking around - taking 5 photos at different angles")
+
         photos = []
-        angles = [120, -120, 0]
-        
+        angles = [-120, -60, 0, 60, 120]
+
         for angle in angles:
             turnHead(motion_service, angle)
             time.sleep(1)  # Wait for head to move
-            
+
             # Take picture with appropriate center angle for markers
             photo_bytes = take_picture(video_service, video_handle, center_angle=angle)
             photo_content = BinaryContent(data=photo_bytes, media_type='image/jpeg')
             photos.append(photo_content)
-        # placing middle photo (last taken) in the middle of the list
-        photos[1], photos[2] = photos[2], photos[1]
-        
+
         # Return head to center position
         print("Returning head to center position")
         turnHead(motion_service, 0)
-        
+
         return photos
     
     return look_around

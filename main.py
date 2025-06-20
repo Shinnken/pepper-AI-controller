@@ -17,7 +17,7 @@ COLORSPACE_INDEX = 11
 FRAMERATE = 5
 
 LANGUAGE = "Polski"
-LANGUAGE = "English"
+#LANGUAGE = "English"
 
 def delete_subs(name, video_service):
     all_subscribers = video_service.getSubscribers()
