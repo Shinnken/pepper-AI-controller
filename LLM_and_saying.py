@@ -59,7 +59,7 @@ class LLMAndSaying:
                     sound_module.setNotListening()
                 
                 # If token ends with sentence delimiter, speak the buffered sentence
-                if token.endswith('.') or token.endswith('!') or token.endswith('?') or token.endswith(','):
+                if token.endswith('.') or token.endswith('!') or token.endswith('?'):# or token.endswith(','):
                     if sentence_buffer.strip():
                         speech_service.say(sentence_buffer.strip())
                         sentence_buffer = ""

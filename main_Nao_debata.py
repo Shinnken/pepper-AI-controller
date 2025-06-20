@@ -72,7 +72,7 @@ def delete_subs(name):
 
 async def main():
     print("Start")
-    agent_service = LLMAndSaying(motion_service, video_service=None, video_handle=None, prompt_name="Tarnowski", language=LANGUAGE)
+    agent_service, idle = LLMAndSaying(motion_service, video_service=None, video_handle=None, prompt_name="Tarnowski", language=LANGUAGE)
 
     # Initialize message history
     message_history = []
