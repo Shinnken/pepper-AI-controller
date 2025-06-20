@@ -11,19 +11,6 @@ import threading  # <--- Add this import
 
 # --- Energy Calculation Functions ---
 # Method 2: Recommended approach using the NumPy library for performance
-def calculate_energy(samples):
-    """
-    Calculates the total energy of a list or array of audio samples.
-    Energy is defined as `E = \Sigma x_n^2`  the sum of the squares of the sample amplitudes.
-    
-    Args:
-        samples: A list or NumPy array of numerical audio samples.
-        
-    Returns:
-        The total energy of the frame.
-    """
-    return np.sum(np.square(samples))
-
 
 def calculate_rms_energy(samples):
     """
@@ -89,20 +76,15 @@ class SoundReceiverModule(object):
         super(SoundReceiverModule, self).__init__()
         self.session = session
         self.audio_service = session.service("ALAudioDevice")
-        self.is_processing = False
         self.module_name = name
-        # self.client_name = "soundReceiverClient"
         self.channels = 1  # Assuming you want to process the front microphone
-        self.buffer_frames = []
-        self.buffer = None
-        self.energy = 0.0
         self.accumulated_frames = []
         self.is_accumulating = False
         self.is_accumulating_or_recognizing_speech = False
         self.lastBelowThresholdTime = None
         self.r = sr.Recognizer()
         self.is_listening = False
-        self.stt_output = []  # List to store STT output
+        self.stt_output = None  # Variable to store STT output
         self.thresholdRMSEnergy = thresholdRMSEnergy
         self.language_map = {"Polski": "pl-PL", "English": "en-US"}
         self.stt_language = self.language_map.get(language, "pl-PL")
@@ -115,83 +97,14 @@ class SoundReceiverModule(object):
         self.audio_service.setClientPreferences(self.module_name, 16000, self.channels, 0)
         self.audio_service.subscribe(self.module_name)
         print ("[SoundReceiver] Subscribed to ALAudioDevice.")
-        self.is_processing = True
 
     def stop(self):
         """
         Unsubscribes from the audio device.
         """
-        if self.is_processing:
-            self.audio_service.unsubscribe(self.module_name)
-            print ("[SoundReceiver] Unsubscribed from ALAudioDevice.")
-            self.is_processing = False
-
-    def calcRMSLevel(self,data) :
-        """
-        Calculate RMS level
-        """
-        rms = 20 * np.log10( np.sqrt( np.sum( np.power(data,2) / len(data)  )) + 1e-12)
-        return rms
-    
-    def convertStr2SignedInt(self, data) :
-        """
-        This function takes a string containing 16 bits little endian sound
-        samples as input and returns a vector containing the 16 bits sound
-        samples values converted between -1 and 1.
-        """
-        signedData=[]
-        ind=0
-        for i in range (0,len(data)/2) :
-            signedData.append(data[ind]+data[ind+1]*256)
-            ind=ind+2
-
-        for i in range (0,len(signedData)) :
-            if signedData[i]>=32768 :
-                signedData[i]=signedData[i]-65536
-
-        for i in range (0,len(signedData)) :
-            signedData[i]=signedData[i]/32768.0
-
-        return signedData
-
-    def getBuffer(self):
-        """
-        Returns the last received audio buffer.
-        """
-        if self.buffer is not None:
-            buff = self.buffer
-            self.buffer = []  # Clear the buffer after returning it
-            # sleep(0.06)  # Allow some time for the unsubscribe to take effect
-            # self.audio_service.unsubscribe(self.module_name)  # Unsubscribe to avoid duplicate subscriptions
-            return buff
-        else:
-            print ("[SoundReceiver] No audio buffer available.")
-            return None
-        
-    def getBufferFrames(self):
-        """
-        Returns the list of audio frames received.
-        """
-        if self.buffer_frames:
-            frames = self.buffer_frames
-            self.buffer_frames = []
-            return frames
-        else:
-            print ("[SoundReceiver] No audio frames available.")
-            return []
-
-
-    def getEnergy(self):
-        """
-        Returns the energy of the last received audio buffer.
-        """
-        if self.energy is not None:
-            energy = self.energy
-            self.energy = 0.0
-            return energy
-        else:
-            print ("[SoundReceiver] No energy value available.")
-            return 0.0
+        self.audio_service.unsubscribe(self.module_name)
+        print ("[SoundReceiver] Unsubscribed from ALAudioDevice.")
+   
 
     def _processSpeechRecognition(self, full_recording):
         """
@@ -265,7 +178,6 @@ class SoundReceiverModule(object):
                 else:
                     if time.time() - self.lastBelowThresholdTime >= 2.0:
                         # Finalize
-                        # self.audio_service.unsubscribe(self.module_name)
                         self.is_accumulating = False
                         print("[SoundReceiver] Below threshold for 2s, spawning thread...")
 

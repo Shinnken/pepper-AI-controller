@@ -9,8 +9,8 @@ import logfire
 import time
 
 
-logfire.configure(console=False)
-logfire.instrument_pydantic_ai()
+# logfire.configure(console=False)
+# logfire.instrument_pydantic_ai()
 
 load_dotenv(find_dotenv())
 
