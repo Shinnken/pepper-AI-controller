@@ -26,17 +26,18 @@ class LLMAndSaying:
         self.system_prompt = self._load_system_message(prompt_name, language)
         self.openrouter_model = OpenAIModel(
             #'openai/gpt-4.1-mini',
-            'meta-llama/llama-3.3-70b-instruct',
+            #'meta-llama/llama-3.3-70b-instruct',
+            'meta-llama/llama-4-maverick',
             provider=OpenRouterProvider(api_key=os.getenv('OPENROUTER_API_KEY')),
         )
         self.agent = Agent(
             self.openrouter_model,
             system_prompt=self.system_prompt
         )
-        # self.agent.tool(self._move_forward_tool(motion_service))
-        # self.agent.tool(self._turn_robot_tool(motion_service))
-        # self.agent.tool(self._look_around_tool(motion_service, video_service, video_handle))
-        # self.agent.tool(self.task_finished_tool(motion_service))
+        self.agent.tool(self._move_forward_tool(motion_service))
+        self.agent.tool(self._turn_robot_tool(motion_service))
+        self.agent.tool(self._look_around_tool(motion_service, video_service, video_handle))
+        self.agent.tool(self.task_finished_tool(motion_service))
 
     async def generate_and_say_response(self, user_input, message_history, speech_service, sound_module, is_idle):
         full_response = ""
