@@ -59,12 +59,15 @@ app.session.registerService("SoundProcessingModule", sound_module_instance)
 sleep(1)  # Give some time for the module to register
 sound_module_instance.start()
 
+agent = init_agent(motion_service, video_service, vid_handle, language=LANGUAGE)
+
 
 async def main():
     print("Start")
     #lookForward(motion_service)
+    sound_module_instance.setListening()
 
-    agent = init_agent(motion_service, video_service, vid_handle, language=LANGUAGE)
+
 
     # Initialize message history
     message_history = []
@@ -80,10 +83,6 @@ async def main():
         #     continue
 
 
-        sound_module_instance.setListening()
-        # Wait a bit for speech input
-        await asyncio.sleep(0.1)
-
         print(f"During listening or procesing: {sound_module_instance.is_accumulating_or_recognizing_speech}")
         # Do not do anything while listening
         if sound_module_instance.is_accumulating_or_recognizing_speech:
@@ -95,10 +94,9 @@ async def main():
 
         # Check for speech input
         user_text = ""
-        if len(sound_module_instance.stt_output) > 0:
+        if sound_module_instance.stt_output:
             user_text = sound_module_instance.stt_output
-            sound_module_instance.stt_output = []  # Clear the buffer
-            sound_module_instance.setNotListening()
+            sound_module_instance.stt_output = None  # Clear the buffer
 
         user_input = [
             f"Human voice commend: '{user_text}'.\n\nThat's what you see on the front:" if user_text else "That's what you see on the front:",
