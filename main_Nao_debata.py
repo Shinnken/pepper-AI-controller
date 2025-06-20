@@ -72,7 +72,7 @@ def delete_subs(name):
 
 async def main():
     print("Start")
-    agent_service, idle = LLMAndSaying(motion_service, video_service=None, video_handle=None, prompt_name="Tarnowski", language=LANGUAGE)
+    agent_service = LLMAndSaying(motion_service, video_service=None, video_handle=None, prompt_name="Tarnowski", language=LANGUAGE)
 
     # Initialize message history
     message_history = []
@@ -90,7 +90,7 @@ async def main():
 
         # Trim history to keep only last 8 messages
 
-        llm_response = await agent_service.generate_and_say_response(user_input, message_history, tts, sound_module_instance, is_idle=None)
+        llm_response, idle = await agent_service.generate_and_say_response(user_input, message_history, tts, sound_module_instance, is_idle=None)
 
         print()  # Add newline after streaming
         message_history.extend(llm_response)
