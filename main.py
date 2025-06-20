@@ -2,7 +2,7 @@ import asyncio
 import qi
 import sys
 from SoundReciver import SoundReceiverModule
-from LLM_and_saying import generate_and_say_response, trim_history, init_agent
+from LLM_and_saying import LLMAndSaying
 from robot_auth import AuthenticatorFactory
 from motion import lookForward
 from camera import take_picture
@@ -59,13 +59,16 @@ app.session.registerService("SoundProcessingModule", sound_module_instance)
 sleep(1)  # Give some time for the module to register
 sound_module_instance.start()
 
-agent = init_agent(motion_service, video_service, vid_handle, language=LANGUAGE)
+agent_service = LLMAndSaying(motion_service, video_service, vid_handle, language=LANGUAGE)
 
 
 async def main():
     print("Start")
     #lookForward(motion_service)
     sound_module_instance.setListening()
+
+    is_idle = True
+
 
 
 
@@ -83,29 +86,35 @@ async def main():
         #     continue
 
 
-        print(f"During listening or procesing: {sound_module_instance.is_accumulating_or_recognizing_speech}")
-        # Do not do anything while listening
-        if sound_module_instance.is_accumulating_or_recognizing_speech:
+
+        # Check for speech input
+        print(f"Is idle: {is_idle}")
+        sleep(0.1)  # Small delay to avoid busy waiting
+        user_text = ""
+        if not is_idle or sound_module_instance.stt_output:
+            user_text = sound_module_instance.stt_output
+            sound_module_instance.stt_output = None  # Clear the buffer
+            is_idle = False
+        else:
             continue
 
         # Capture image
         camera_view_bytes = take_picture(video_service, vid_handle)
         image_content = BinaryContent(data=camera_view_bytes, media_type='image/jpeg')
 
-        # Check for speech input
-        user_text = ""
-        if sound_module_instance.stt_output:
-            user_text = sound_module_instance.stt_output
-            sound_module_instance.stt_output = None  # Clear the buffer
 
         user_input = [
             f"Human voice commend: '{user_text}'.\n\nThat's what you see on the front:" if user_text else "That's what you see on the front:",
             image_content
         ]
 
-        #message_history = trim_history(message_history, max_size=16)
-
-        llm_response = await generate_and_say_response(agent, user_input, message_history, tts, sound_module_instance)
+        llm_response, is_idle = await agent_service.generate_and_say_response(
+            user_input,
+            message_history,
+            tts,
+            sound_module_instance,
+            is_idle=is_idle
+        )
 
         print()  # Add newline after streaming
         message_history.extend(llm_response)
