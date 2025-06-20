@@ -3,9 +3,10 @@ import qi
 import sys
 import random
 from SoundReciver import SoundReceiverModule
-from LLM_and_saying import generate_and_say_response, trim_history, init_agent
+from LLM_and_saying import LLMAndSaying
 from time import sleep
 
+LANGUAGE = "Polski"
 
 # inne parametry dla nao i peppera, sprawdzić w developer guidzie
 CAMERA_INDEX = 0
@@ -71,7 +72,7 @@ def delete_subs(name):
 
 async def main():
     print("Start")
-    agent = init_agent(motion_service, video_service=None, video_handle=None, prompt_name="Narwicki", language="Polski")
+    agent_service = LLMAndSaying(motion_service, video_service=None, video_handle=None, prompt_name="Narwicki", language=LANGUAGE)
 
     # Initialize message history
     message_history = []
@@ -88,9 +89,8 @@ async def main():
             continue
 
         # Trim history to keep only last 8 messages
-        message_history = trim_history(message_history)
 
-        llm_response = await generate_and_say_response(agent, user_input, message_history, tts, sound_module_instance)
+        llm_response = await agent_service.generate_and_say_response(user_input, message_history, tts, sound_module_instance, is_idle=None)
 
         print()  # Add newline after streaming
         message_history.extend(llm_response)
