@@ -20,7 +20,6 @@ LANGUAGE = "Polski"
 #LANGUAGE = "English"
 
 
-
 app = qi.Application(sys.argv, url="tcps://192.168.1.110:9503")    # Pepper
 #app = qi.Application(sys.argv, url="tcps://192.168.1.104:9503")    # Nao
 
@@ -28,6 +27,12 @@ logins = ("nao", "nao")
 factory = AuthenticatorFactory(*logins)
 app.session.setClientAuthenticatorFactory(factory)
 app.start()
+
+app.session.service("ALAutonomousLife").setState("disabled")  # Disable autonomous life to prevent interruptions
+# sleep(3)  # Wait for the service to be ready
+app.session.service("ALMotion").wakeUp()  # Wake up the robot
+app.session.service("ALRobotPosture").goToPosture("StandInit", 0.5)  # Set initial posture
+
 
 if LANGUAGE == "Polski":
     app.session.service("ALTextToSpeech").setLanguage("Polish")

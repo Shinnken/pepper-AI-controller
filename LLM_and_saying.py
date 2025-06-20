@@ -25,9 +25,9 @@ class LLMAndSaying:
         self.is_idle = True  # Flag to track if the robot is idle
         self.system_prompt = self._load_system_message(prompt_name, language)
         self.openrouter_model = OpenAIModel(
-            #'openai/gpt-4.1-mini',
+            'openai/gpt-4.1-mini',
             #'meta-llama/llama-3.3-70b-instruct',
-            'meta-llama/llama-4-maverick',
+            # 'meta-llama/llama-4-maverick',
             provider=OpenRouterProvider(api_key=os.getenv('OPENROUTER_API_KEY')),
         )
         self.agent = Agent(
@@ -149,7 +149,7 @@ class LLMAndSaying:
     def task_finished_tool(self, motion_service):
         """Create task finished tool for the agent"""
         def task_finished(ctx: RunContext[Any]):
-            """Signal that the task is finished"""
+            """Signal that the task given you by a human is finished or can't be done. If you have no idea what to do next, call that tool."""
             print("Task finished - returning to idle state")
             self.is_idle = True
         return task_finished
