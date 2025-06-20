@@ -2,6 +2,15 @@ import numpy as np
 import cv2
 
 
+def delete_subs(name, app, video_service):
+    all_subscribers = video_service.getSubscribers()
+    sub_to_delete = [subscriber for subscriber in all_subscribers if name in str(subscriber)] # type: ignore
+    for sub in sub_to_delete:
+        app.session.service("ALVideoDevice").unsubscribe(sub)
+
+    return video_service
+
+
 def draw_angle_markers(image, center_angle=0):
     """Draw angle markers on the bottom of the image showing camera field of view"""
     image_height, image_width = image.shape[:2]

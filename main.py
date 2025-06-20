@@ -5,7 +5,7 @@ from SoundReciver import SoundReceiverModule
 from LLM_and_saying import LLMAndSaying
 from robot_auth import AuthenticatorFactory
 from motion import lookForward
-from camera import take_picture
+from camera import take_picture, delete_subs
 from time import sleep
 from pydantic_ai import BinaryContent
 
@@ -19,13 +19,6 @@ FRAMERATE = 5
 LANGUAGE = "Polski"
 #LANGUAGE = "English"
 
-def delete_subs(name, video_service):
-    all_subscribers = video_service.getSubscribers()
-    sub_to_delete = [subscriber for subscriber in all_subscribers if name in str(subscriber)] # type: ignore
-    for sub in sub_to_delete:
-        app.session.service("ALVideoDevice").unsubscribe(sub)
-
-    return video_service
 
 
 app = qi.Application(sys.argv, url="tcps://192.168.1.110:9503")    # Pepper
@@ -44,7 +37,7 @@ tts = app.session.service("ALAnimatedSpeech")
 motion_service = app.session.service("ALMotion")
 video_service = app.session.service("ALVideoDevice")
 
-video_service = delete_subs("kamera", video_service) # needed for camera initialization
+video_service = delete_subs("kamera", app, video_service) # needed for camera initialization
 vid_handle = video_service.subscribeCamera(
     "kamera",
     CAMERA_INDEX,
