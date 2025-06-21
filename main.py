@@ -48,7 +48,7 @@ vid_handle = video_service.subscribeCamera(
 
 )
 
-sound_module_instance = SoundReceiverModule(app.session, name="SoundProcessingModule", thresholdRMSEnergy=0.05)
+sound_module_instance = SoundReceiverModule(app.session, name="SoundProcessingModule", thresholdRMSEnergy=0.04)
 app.session.registerService("SoundProcessingModule", sound_module_instance)
 sleep(1)  # Give some time for the module to register
 sound_module_instance.start()

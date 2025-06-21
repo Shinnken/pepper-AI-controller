@@ -1,5 +1,8 @@
 from pydantic_ai import BinaryContent
 from camera import take_picture
+from LLM_and_saying import LLMAndSaying
+
+
 
 
 async def execute_robot_action_step(user_text, sound_module, llm_agent, tts, video_service, vid_handle, message_history, is_idle):
@@ -7,13 +10,13 @@ async def execute_robot_action_step(user_text, sound_module, llm_agent, tts, vid
     # Capture and analyze environment
     camera_view_bytes = take_picture(video_service, vid_handle)
     image_content = BinaryContent(data=camera_view_bytes, media_type='image/jpeg')
-    
+
     # Prepare input for robot's decision making
     user_input = [
         f"Human voice commend: '{user_text}'.\n\nThat's what you see on the front:" if user_text else "That's what you see on the front:",
         image_content
     ]
-    
+
     # Execute robot's response (movement, speech, or other actions)
     llm_response, new_idle_state = await llm_agent.generate_say_execute_response(
         user_input,
@@ -22,10 +25,10 @@ async def execute_robot_action_step(user_text, sound_module, llm_agent, tts, vid
         sound_module,
         is_idle=is_idle
     )
-    
+
     print()  # Add newline after streaming
     message_history.extend(llm_response)
-    
+
     return new_idle_state
 
 

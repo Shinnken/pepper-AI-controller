@@ -39,7 +39,7 @@ def draw_angle_markers(image, center_angle=0):
     # Draw markers
     for angle in angles:
         # Map angle to x position within the visible range
-        x_position = int((angle - min_angle) / (max_angle - min_angle) * image_width)
+        x_position = int((max_angle - angle) / (max_angle - min_angle) * image_width)
 
         # Draw vertical tick mark
         cv2.line(image, (x_position, y_position - 10), (x_position, y_position + 10), yellow_color, 2)
