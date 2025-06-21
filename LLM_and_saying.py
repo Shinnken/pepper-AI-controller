@@ -23,6 +23,7 @@ class LLMAndSaying:
         self.video_handle = video_handle
 
         self.is_idle = True  # Flag to track if the robot is idle
+        self.message_history = []  # Conversation history management
         self.system_prompt = self._load_system_message(prompt_name, language)
         self.openrouter_model = OpenAIModel(
             'openai/gpt-4.1',
@@ -39,12 +40,12 @@ class LLMAndSaying:
         self.agent.tool(self._look_around_tool(motion_service, video_service, video_handle))
         self.agent.tool(self.task_finished_tool(motion_service))
 
-    async def generate_say_execute_response(self, user_input, message_history, speech_service, sound_module, is_idle):
+    async def generate_say_execute_response(self, user_input, speech_service, sound_module, is_idle):
         full_response = ""
         sentence_buffer = ""
         self.is_idle = is_idle  # Update idle state based on the input
         try:
-            async with self.agent.run_stream(user_input, message_history=message_history) as result:
+            async with self.agent.run_stream(user_input, message_history=self.message_history) as result:
                 # tts.say(random.choice(animations))
                 async for token in result.stream_text(delta=True):
                     # Check if adding this token would exceed 1000 characters
@@ -69,10 +70,16 @@ class LLMAndSaying:
                 if sentence_buffer.strip():
                     speech_service.say(sentence_buffer.strip())
 
-                return result.new_messages(), self.is_idle
+                # Update message history with new messages
+                self.message_history.extend(result.new_messages())
+                return self.is_idle
         finally:
             # Always restore listening, even if the task was cancelled
             sound_module.setListening()
+
+    def reset_conversation(self):
+        """Reset conversation history for a new task"""
+        self.message_history = []
 
     def trim_history(self, messages, max_size=6):
         """Keep system message + last max_size conversation messages"""

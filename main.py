@@ -2,10 +2,10 @@ import asyncio
 import qi
 import sys
 from SoundReciver import SoundReceiverModule
-from LLM_and_saying import LLMAndSaying
 from robot_auth import AuthenticatorFactory
 from camera import delete_subs
-from robot_action_logic import execute_robot_task
+from robot_action_logic import RobotActionHandler
+from motion import grabGun
 from time import sleep
 
 # inne parametry dla nao i peppera, sprawdzić w developer guidzie
@@ -53,36 +53,29 @@ app.session.registerService("SoundProcessingModule", sound_module_instance)
 sleep(1)  # Give some time for the module to register
 sound_module_instance.start()
 
-agent_service = LLMAndSaying(motion_service, video_service, vid_handle, language=LANGUAGE)
 
 
 async def main():
     print("Start")
     sound_module_instance.setListening()
 
+    # Initialize robot action handler
+    robot_action_handler = RobotActionHandler(
+        motion_service, video_service, vid_handle,
+        sound_module_instance, tts, LANGUAGE
+    )
+
     current_robot_task = None
 
     # Main command loop
     while True:
-        # Accept new command only when no task is running
-        if current_robot_task is None or current_robot_task.done():
-            while sound_module_instance.stt_output is None:
-                await asyncio.sleep(0.1)
-
-            # Get command and clear buffer
+        await asyncio.sleep(0.1)
+        
+        # Start new task if none running
+        if (current_robot_task is None or current_robot_task.done()) and sound_module_instance.stt_output:
             command = sound_module_instance.stt_output
             sound_module_instance.stt_output = None
-
-            # Create robot task
-            current_robot_task = asyncio.create_task(
-                execute_robot_task(
-                    command, sound_module_instance, agent_service,
-                    tts, video_service, vid_handle
-                )
-            )
-        else:
-            # Wait before checking again
-            await asyncio.sleep(0.1)
+            current_robot_task = asyncio.create_task(robot_action_handler.run_task(command))
 
 
 if __name__ == "__main__":

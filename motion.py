@@ -7,16 +7,16 @@ def grabGun(motion_service):
     deg_to_rad = 0.017453
     Arm1 = [45, 45, 0, 20]
     Arm1 = [x * deg_to_rad for x in Arm1]
-    Arm2 = [50, 50, 0, 20]
+    Arm2 = [50, 50, 0, 0]
     Arm2 = [x * deg_to_rad for x in Arm2]
 
     pFractionMaxSpeed = 1.0
 
-    motion_service.angleInterpolationWithSpeed(JointNames, Arm1, pFractionMaxSpeed)
+    #motion_service.angleInterpolationWithSpeed(JointNames, Arm1, pFractionMaxSpeed)
     motion_service.angleInterpolationWithSpeed(JointNames, Arm2, pFractionMaxSpeed)
     #motion_service.setAngles(JointNames, Arm1, pFractionMaxSpeed)
-    motion_service.setStiffnesses("RArm", 0.0)
-    motion_service.setStiffnesses("RHand", 0.0)
+    #motion_service.setStiffnesses("RArm", 0.0)
+    #motion_service.setStiffnesses("RHand", 0.0)
 
 
 def moveFingers(motion_service):
