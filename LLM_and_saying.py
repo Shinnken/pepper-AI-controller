@@ -25,9 +25,9 @@ class LLMAndSaying:
         self.is_idle = True  # Flag to track if the robot is idle
         self.system_prompt = self._load_system_message(prompt_name, language)
         self.openrouter_model = OpenAIModel(
-            'openai/gpt-4.1-mini',
-            #'meta-llama/llama-3.3-70b-instruct',
-            # 'meta-llama/llama-4-maverick',
+            'openai/gpt-4.1',
+            #'meta-llama/llama-4-maverick',
+            #'deepseek/deepseek-chat-v3-0324',
             provider=OpenRouterProvider(api_key=os.getenv('OPENROUTER_API_KEY')),
         )
         self.agent = Agent(
@@ -39,40 +39,40 @@ class LLMAndSaying:
         self.agent.tool(self._look_around_tool(motion_service, video_service, video_handle))
         self.agent.tool(self.task_finished_tool(motion_service))
 
-    async def generate_and_say_response(self, user_input, message_history, speech_service, sound_module, is_idle):
+    async def generate_say_execute_response(self, user_input, message_history, speech_service, sound_module, is_idle):
         full_response = ""
         sentence_buffer = ""
         self.is_idle = is_idle  # Update idle state based on the input
-        # Generating and saying response
-        async with self.agent.run_stream(user_input, message_history=message_history) as result:
-            # tts.say(random.choice(animations))
-            async for token in result.stream_text(delta=True):
-                # Check if adding this token would exceed 1000 characters
-                if len(full_response) + len(token) > 2000:
-                    break
+        try:
+            async with self.agent.run_stream(user_input, message_history=message_history) as result:
+                # tts.say(random.choice(animations))
+                async for token in result.stream_text(delta=True):
+                    # Check if adding this token would exceed 1000 characters
+                    if len(full_response) + len(token) > 2000:
+                        break
 
-                print(token, end='', flush=True)
-                full_response += token
-                sentence_buffer += token
+                    print(token, end='', flush=True)
+                    full_response += token
+                    sentence_buffer += token
 
-                # Do not listen while talking
-                if sound_module.is_listening:
-                    sound_module.setNotListening()
-                
-                # If token ends with sentence delimiter, speak the buffered sentence
-                if token.endswith('.') or token.endswith('!') or token.endswith('?'):# or token.endswith(','):
-                    if sentence_buffer.strip():
-                        speech_service.say(sentence_buffer.strip())
-                        sentence_buffer = ""
-            
-            # Speak final sentence if any
-            if sentence_buffer.strip():
-                speech_service.say(sentence_buffer.strip())
+                    # Do not listen while talking
+                    if sound_module.is_listening:
+                        sound_module.setNotListening()
 
-            # set listening back
+                    # If token ends with sentence delimiter, speak the buffered sentence
+                    if token.endswith('.') or token.endswith('!') or token.endswith('?'):# or token.endswith(','):
+                        if sentence_buffer.strip():
+                            speech_service.say(sentence_buffer.strip())
+                            sentence_buffer = ""
+
+                # Speak final sentence if any
+                if sentence_buffer.strip():
+                    speech_service.say(sentence_buffer.strip())
+
+                return result.new_messages(), self.is_idle
+        finally:
+            # Always restore listening, even if the task was cancelled
             sound_module.setListening()
-
-            return result.new_messages(), self.is_idle
 
     def trim_history(self, messages, max_size=6):
         """Keep system message + last max_size conversation messages"""
@@ -149,7 +149,7 @@ class LLMAndSaying:
     def task_finished_tool(self, motion_service):
         """Create task finished tool for the agent"""
         def task_finished(ctx: RunContext[Any]):
-            """Signal that the task given you by a human is finished or can't be done. If you have no idea what to do next, call that tool."""
+            """Signal that the task given you by a human is finished or can't be done."""
             print("Task finished - returning to idle state")
             self.is_idle = True
         return task_finished

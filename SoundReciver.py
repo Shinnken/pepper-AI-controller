@@ -96,7 +96,7 @@ class SoundReceiverModule(object):
         self.audio_service.closeAudioInputs()
         self.audio_service.setClientPreferences(self.module_name, 16000, self.channels, 0)
         self.audio_service.subscribe(self.module_name)
-        print ("[SoundReceiver] Subscribed to ALAudioDevice.")
+        #print ("[SoundReceiver] Subscribed to ALAudioDevice.")
 
     def stop(self):
         """
@@ -135,13 +135,15 @@ class SoundReceiverModule(object):
                 print("[SoundReceiver] Could not understand audio")
             except sr.RequestError as e:
                 print("[SoundReceiver] Speech Recognition request error:", e)
-            self.is_accumulating_or_recognizing_speech = False
-
+            finally:
+                self.is_accumulating_or_recognizing_speech = False
+                self.setListening()
     def setListening(self):
         """
         Enables or disables listening mode.
         """
         self.is_listening = True
+        print("[SoundReceiver] Started listening.")
 
     def setNotListening(self):
         """
@@ -151,13 +153,13 @@ class SoundReceiverModule(object):
         self.is_accumulating = False
         self.accumulated_frames = []
         self.lastBelowThresholdTime = None
-        #print("[SoundReceiver] Stopped listening and cleared accumulated frames.")
+        print("[SoundReceiver] Stopped listening and cleared accumulated frames.")
 
     def processRemote(self, nbOfChannels, nbrOfSamplesByChannel, timestamp, buffer):
         if not self.is_listening:
             return
         rms = get_rms_energy_from_bytes(buffer)
-        print("[SoundReceiver] RMS Energy:", rms)
+        #print("[SoundReceiver] RMS Energy:", rms)
         # Start accumulating if we detect a loud signal
         if not self.is_accumulating:
             if rms > self.thresholdRMSEnergy:
