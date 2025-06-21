@@ -26,7 +26,6 @@ app.session.setClientAuthenticatorFactory(factory)
 app.start()
 
 # app.session.service("ALAutonomousLife").setState("disabled")  # Disable autonomous life to prevent interruptions
-# sleep(3)  # Wait for the service to be ready
 app.session.service("ALMotion").wakeUp()  # Wake up the robot
 app.session.service("ALRobotPosture").goToPosture("StandInit", 0.5)  # Set initial posture
 
