@@ -4,46 +4,65 @@ Konrad chcial Bielik with da Pepper, to robimy Bielik with da Pepper. Sprobujemy
 
 ---
 
-## Spis Tresci
+## Spis Treści
 
-- [Dzialanie_programu] (#Dzialanie_programu)
-- [Uzywane_moduly_AL] (#uzywane-moduly-AL)
-- [Struktura_Projektu] (#struktura-projektu)
-- [Opisy_plikow] (#opisy-plikow)
-- [Autorzy_i_kontakt] (#autorzy_i_kontakt)
+- [Bielik with da Pepper](#bielik-with-da-pepper)
+  - [Spis Treści](#spis-treści)
+  - [Struktura projektu](#struktura-projektu)
+  - [Opis plików i katalogów](#opis-plików-i-katalogów)
+  - [Używane moduły AL](#używane-moduły-al)
   
 ---
 
-## Dzialanie_programu
+## Struktura projektu
 
-- Zbieranie audio z Peppera
-- Przesylanie audio do XXX i speech2text
-- Przeslanie do Bielika tekstu
-- Bielik nam zwraca glos
-- Wysylamy do Peppera
+```bash
+.
+├── camera.py
+├── images
+│   ├── bottle1.jpg
+│   ├── cola1.jpg
+│   └── cola2.jpg
+├── LLM_and_saying.py
+├── main_Nao_debata.py
+├── main_Pepper_debata.py
+├── main.py
+├── metal_bottle_detector.py
+├── motion.py
+├── prompts
+│   ├── Narwicki.prompt
+│   ├── system_message.prompt
+│   └── Tarnowski.prompt
+├── README.md
+├── requirements.txt
+├── robot_action_logic.py
+├── robot_auth.py
+├── SoundReciver.py
+└── yolov8n.pt
+```
+
+## Opis plików i katalogów
+
+- **`main.py`**: Główny plik uruchomieniowy projektu.
+- **`main_Nao_debata.py`**: Główny plik do debaty z użyciem robota Nao.
+- **`main_Pepper_debata.py`**: Główny plik do debaty z użyciem robota Pepper.
+- **`camera.py`**: Moduł do obsługi kamery robota, robienia zdjęć i oznaczania na nich kątów.
+- **`LLM_and_saying.py`**: Obsługuje interakcję z modelem językowym (LLM) oraz syntezę mowy robota.
+- **`metal_bottle_detector.py`**: Skrypt do detekcji metalowych butelek, prawdopodobnie z użyciem modelu `yolov8n.pt`.
+- **`motion.py`**: Odpowiada za sterowanie ruchem robota.
+- **`robot_action_logic.py`**: Zawiera logikę akcji wykonywanych przez robota.
+- **`robot_auth.py`**: Moduł do autentykacji i połączenia z robotem.
+- **`SoundReciver.py`**: Odbiera dźwięk z mikrofonów robota. (Możliwie, że przestarzały).
+- **`requirements.txt`**: Lista zależności Pythona wymaganych do uruchomienia projektu.
+- **`yolov8n.pt`**: Wytrenowany model sieci neuronowej YOLOv8, używany do detekcji obiektów.
+- **`images/`**: Katalog zawierający przykładowe obrazy.
+- **`prompts/`**: Katalog z plikami zawierającymi prompty dla modelu językowego.
 
 ---
 
-## Uzywane moduly AL
+## Używane moduły AL
 
-- AL
-
-
-## Struktura projektu
-
-```
-Bielik_with_pepper
-├── audio_soundprocessing.py # Tu chcemy rzezbic
-|
-├── SoundReciver.py         # Mozliwie ze do wywalenia, ale chwilowo nie tykamy
-|
-├── requirements.txt
-|
-└── main.py
-```
-
-## Opisy plikow
-
-- **audio_soundprocessing.py**: Tutaj zamierzamy zamiescic glowna logike programu, zbieranie audio i przesylanie
-- **SoundReciver.py**: Deprecated, ale dzialal, niech zostanie chwilowo chlopak
-- **main.py**: Nie zgadniesz co robi
+- `ALVideoDevice`
+- `ALTextToSpeech`
+- `ALAudioDevice`
+- `ALMotion`
