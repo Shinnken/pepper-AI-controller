@@ -107,7 +107,7 @@ class LLMAndSaying:
                 meters = 0
 
             print(f"Moving forward {meters} meters")
-            motion_service.wakeUp()
+            # motion_service.wakeUp()
             motion_service.moveTo(meters, 0.0, 0.0)
 
         return move_forward
@@ -119,7 +119,7 @@ class LLMAndSaying:
             print(f"Turning {degrees} degrees")
             # Convert degrees to radians
             radians = degrees * 0.017453
-            motion_service.wakeUp()
+            # motion_service.wakeUp()
             motion_service.moveTo(0.0, 0.0, radians)
 
         return turn_robot
@@ -138,7 +138,7 @@ class LLMAndSaying:
 
             for angle in angles:
                 turnHead(motion_service, angle)
-                time.sleep(1)  # Wait for head to move
+                # time.sleep(1)  # Wait for head to move
 
                 # Take picture with appropriate center angle for markers
                 photo_bytes = take_picture(video_service, video_handle, center_angle=angle)
