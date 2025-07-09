@@ -61,7 +61,9 @@ def take_picture(video_service, video_handle, center_angle=0):
     image_buffer = cv2.cvtColor(image_buffer, cv2.COLOR_RGB2BGR)
     image_buffer = draw_angle_markers(image_buffer, center_angle)
 
-    cv2.imwrite(f"pepper_image_{center_angle}.png", image_buffer)
+    _, buffer = cv2.imencode('.jpg', image_buffer, [cv2.IMWRITE_JPEG_QUALITY, 70])
 
-    _, buffer = cv2.imencode('.jpg', image_buffer)
+    with open(f"pepper_image_{center_angle}.jpg", 'wb') as f:
+        f.write(buffer)
+
     return buffer.tobytes()

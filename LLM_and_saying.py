@@ -38,6 +38,7 @@ class LLMAndSaying:
         self.agent.tool(self._move_forward_tool(motion_service))
         self.agent.tool(self._turn_robot_tool(motion_service))
         self.agent.tool(self._look_around_tool(motion_service, video_service, video_handle))
+        self.agent.tool(self._look_forward_tool(motion_service, video_service, video_handle))
         self.agent.tool(self.task_finished_tool(motion_service))
 
     async def generate_say_execute_response(self, user_input, speech_service, sound_module, is_idle):
@@ -108,7 +109,9 @@ class LLMAndSaying:
 
             print(f"Moving forward {meters} meters")
             # motion_service.wakeUp()
+            # print("Waking start")
             motion_service.moveTo(meters, 0.0, 0.0)
+            # print("Waking end")
 
         return move_forward
 
@@ -120,7 +123,9 @@ class LLMAndSaying:
             # Convert degrees to radians
             radians = degrees * 0.017453
             # motion_service.wakeUp()
+            # print("Turning start")
             motion_service.moveTo(0.0, 0.0, radians)
+            # print("Turning end")
 
         return turn_robot
 
@@ -134,11 +139,11 @@ class LLMAndSaying:
             print("Looking around - taking 5 photos at different angles")
 
             photos = []
-            angles = [-120, -60, 0, 60, 120]
+            angles = [-120, -60, 0, 120, 60]
 
             for angle in angles:
                 turnHead(motion_service, angle)
-                # time.sleep(1)  # Wait for head to move
+                time.sleep(0.2)  # Wait for head to move
 
                 # Take picture with appropriate center angle for markers
                 photo_bytes = take_picture(video_service, video_handle, center_angle=angle)
@@ -153,6 +158,22 @@ class LLMAndSaying:
         
         return look_around
     
+    def _look_forward_tool(self, motion_service, video_service, video_handle):
+        """Create look forward tool for the agent"""
+        def look_forward(ctx: RunContext[Any]):
+            """Take a photo of what you currently see in front of you to analyze the environment"""
+            from camera import take_picture
+            
+            print("Taking photo of what's in front")
+            
+            # Take picture from current head position (assuming head is at 0 degrees)
+            photo_bytes = take_picture(video_service, video_handle, center_angle=0)
+            photo_content = BinaryContent(data=photo_bytes, media_type='image/jpeg')
+            
+            return photo_content
+        
+        return look_forward
+
     def task_finished_tool(self, motion_service):
         """Create task finished tool for the agent"""
         def task_finished(ctx: RunContext[Any]):

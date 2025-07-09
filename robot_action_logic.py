@@ -43,13 +43,17 @@ class RobotActionHandler:
     async def _execute_single_step(self, user_command):
         """Execute a single perception-decision-action cycle"""
         # Capture environment
-        camera_view_bytes = take_picture(self.video_service, self.vid_handle)
-        image_content = BinaryContent(data=camera_view_bytes, media_type='image/jpeg')
+            
+        # camera_view_bytes = take_picture(self.video_service, self.vid_handle)
+        # image_content = BinaryContent(data=camera_view_bytes, media_type='image/jpeg')
 
         # Prepare multimodal input
+        # user_input = [
+        #     f"Human voice command: '{user_command}'.\n\nThat's what you see on the front:" if user_command else "That's what you see on the front:",
+        #     image_content
+        # ]
         user_input = [
-            f"Human voice command: '{user_command}'.\n\nThat's what you see on the front:" if user_command else "That's what you see on the front:",
-            image_content
+            f"Human voice command: '{user_command}'.\n\n"
         ]
 
         # Get LLM response and execute actions

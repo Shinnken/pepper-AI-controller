@@ -58,5 +58,5 @@ def turnHead(motion_service, angle_degrees):
     Angles = [angle_degrees * deg_to_rad]
     
     pFractionMaxSpeed = 1.0
-    motion_service.wakeUp()
+    # motion_service.wakeUp()
     motion_service.angleInterpolationWithSpeed(JointNames, Angles, pFractionMaxSpeed)
