@@ -118,7 +118,7 @@ class LLMAndSaying:
             """Turn the robot by specified angle in degrees (positive = left, negative = right)"""
             print(f"Turning {degrees} degrees")
             # Convert degrees to radians
-            radians = degrees * 0.017453
+            radians = degrees * 0.01745
             motion_service.wakeUp()
             motion_service.moveTo(0.0, 0.0, radians)
 

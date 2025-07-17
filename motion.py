@@ -17,6 +17,8 @@ def grabGun(motion_service):
     #motion_service.setAngles(JointNames, Arm1, pFractionMaxSpeed)
     #motion_service.setStiffnesses("RArm", 0.0)
     #motion_service.setStiffnesses("RHand", 0.0)
+    motion_service.openHand("RHand")
+    motion_service.closeHand("RHand")
 
 
 def moveFingers(motion_service):
