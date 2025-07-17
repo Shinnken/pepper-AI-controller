@@ -72,7 +72,7 @@ class SoundReceiverModule(object):
     """
     A NAOqi module to subscribe to ALAudioDevice and process microphone data.
     """
-    def __init__(self, session, name="SoundReceiverModule", thresholdRMSEnergy = 0.03, language="Polski"):
+    def __init__(self, session, name="SoundReceiverModule", thresholdRMSEnergy = 0.01, language="Polski"):
         super(SoundReceiverModule, self).__init__()
         self.session = session
         self.audio_service = session.service("ALAudioDevice")
@@ -108,36 +108,47 @@ class SoundReceiverModule(object):
 
     def _processSpeechRecognition(self, full_recording):
         """
-        Process speech recognition in a separate thread.
+        Process speech recognition in a separate thread with simple compression.
         """
-        p = pyaudio.PyAudio()
-        audio_format = pyaudio.paInt16
-        channels = 1
-        rate = 16000
+        try:
+            # Simple compression: reduce audio data by removing every other sample
+            audio_array = np.frombuffer(full_recording, dtype=np.int16)
+            compressed_audio = audio_array[::2]  # Take every second sample
+            compressed_bytes = compressed_audio.tobytes()
+            
+            # Create WAV file in memory with compressed data
+            p = pyaudio.PyAudio()
+            audio_format = pyaudio.paInt16
+            channels = 1
+            rate = 8000  # Half the original rate due to downsampling
 
-        byte_buffer = io.BytesIO()
-        with wave.open(byte_buffer, "wb") as wf:
-            wf.setnchannels(channels)
-            wf.setsampwidth(p.get_sample_size(audio_format))
-            wf.setframerate(rate)
-            wf.writeframes(full_recording)
+            byte_buffer = io.BytesIO()
+            with wave.open(byte_buffer, "wb") as wf:
+                wf.setnchannels(channels)
+                wf.setsampwidth(p.get_sample_size(audio_format))
+                wf.setframerate(rate)
+                wf.writeframes(compressed_bytes)
 
-        byte_buffer.seek(0)
-        print("[SoundReceiver] Processing accumulated audio on a separate thread.")
-        with sr.AudioFile(byte_buffer) as source:
-            audio_data = self.r.record(source)
-            try:
+            byte_buffer.seek(0)
+            print("[SoundReceiver] Processing accumulated audio on a separate thread.")
+            
+            with sr.AudioFile(byte_buffer) as source:
+                audio_data = self.r.record(source)
+                
                 print("[SoundReceiver] Recognizing speech...")
                 text = self.r.recognize_google(audio_data, language=self.stt_language, pfilter=1)
                 print("[SoundReceiver] Recognized text:", text)
-                self.stt_output = text
-            except sr.UnknownValueError:
-                print("[SoundReceiver] Could not understand audio")
-            except sr.RequestError as e:
-                print("[SoundReceiver] Speech Recognition request error:", e)
-            finally:
-                self.is_accumulating_or_recognizing_speech = False
-                self.setListening()
+                self.stt_output = None if text.strip() == "" else text
+
+        except sr.UnknownValueError:
+            print("[SoundReceiver] Could not understand audio")
+        except sr.RequestError as e:
+            print("[SoundReceiver] Speech Recognition request error:", e)
+        except Exception as e:
+            print(f"[SoundReceiver] Error during audio processing: {e}")
+        finally:
+            self.is_accumulating_or_recognizing_speech = False
+            self.setListening()
     def setListening(self):
         """
         Enables or disables listening mode.
@@ -159,7 +170,7 @@ class SoundReceiverModule(object):
         if not self.is_listening:
             return
         rms = get_rms_energy_from_bytes(buffer)
-        #print("[SoundReceiver] RMS Energy:", rms)
+        print("[SoundReceiver] RMS Energy:", rms)
         # Start accumulating if we detect a loud signal
         if not self.is_accumulating:
             if rms > self.thresholdRMSEnergy:
