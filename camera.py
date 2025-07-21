@@ -52,10 +52,10 @@ def draw_horizontal_angle_grid(image, center_angle=0):
 
 
 def draw_vertical_angle_grid(image):
-    """Draw VERTICAL angle markers on the left side of the image."""
-    image_height, _ = image.shape[:2]
+    """Draw VERTICAL angle markers on the middle of the image."""
+    image_height, image_width = image.shape[:2]
     yellow_color = (0, 255, 255)  # BGR for yellow
-    x_position = 30  # pixels from left edge
+    x_position = image_width // 2  # Center of the image
 
     # Draw the main vertical line
     cv2.line(image, (x_position, 0), (x_position, image_height), yellow_color, 2)
@@ -65,13 +65,12 @@ def draw_vertical_angle_grid(image):
     for angle in range(20, -21, -5):
         # Map angle to y-coordinate. Positive angle is up (lower y-value).
         y_pos = int((image_height / 2) * (1 - angle / vertical_fov_range))
-
         # Draw horizontal tick mark
         cv2.line(image, (x_position - 10, y_pos), (x_position + 10, y_pos), yellow_color, 2)
-
         # Add angle text
         cv2.putText(image, f"{angle}", (x_position + 15, y_pos + 5),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, yellow_color, 2)
+
     return image
 
 

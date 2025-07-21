@@ -76,13 +76,16 @@ async def main():
 
     # Main command loop
     while True:
-        await asyncio.sleep(0.1)
-        
-        # Start new task if none running
-        if (current_robot_task is None or current_robot_task.done()) and sound_module_instance.stt_output:
-            command = sound_module_instance.stt_output
-            sound_module_instance.stt_output = None
-            current_robot_task = asyncio.create_task(robot_action_handler.run_task(command))
+        try:
+            await asyncio.sleep(0.1)
+
+            # Start new task if none running
+            if (current_robot_task is None or current_robot_task.done()) and sound_module_instance.stt_output:
+                command = sound_module_instance.stt_output
+                sound_module_instance.stt_output = None
+                current_robot_task = asyncio.create_task(robot_action_handler.run_task(command))
+        finally:
+            robot_action_handler.close_bt()
 
 
 if __name__ == "__main__":
