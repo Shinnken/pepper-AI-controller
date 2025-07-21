@@ -14,6 +14,9 @@ class RobotActionHandler:
         self.llm_agent = LLMAndSaying(motion_service, video_service, vid_handle, language=language)
         self.is_idle = True
 
+    def close_bt(self):
+        self.llm_agent.bluetooth.close() if self.llm_agent.bluetooth else None
+
     async def run_task(self, initial_command):
         """Execute complete robot task from initial command until completion"""
         print(f"[ROBOT_TASK] Starting robot task with initial command: '{initial_command}'")

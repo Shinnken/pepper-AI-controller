@@ -10,9 +10,33 @@ from vla_and_vision.metal_bottle_detector import target_and_shoot_bottle
 from motion import grabGun
 import logfire
 
+def connect_bluetooth(retries=3, mac_address='00:21:13:02:1C:30', port=None):
+    import socket
+    """Connect to the Bluetooth device for shooting"""
+    
+    # If no port specified, use default RFCOMM port
+    if port is None:
+        port = 1  # Default RFCOMM port
+    
+    for attempt in range(retries):
+        try:
+            # Create Bluetooth socket using socket module
+            sock = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM)
+            sock.connect((mac_address, port))
+            print(f"Connected to the Bluetooth device on port {port}")
+            sock.settimeout(1)
+            return sock
+        except Exception as e:
+            print(f"Connection attempt {attempt + 1} failed: {e}")
+            if attempt < retries - 1:
+                time.sleep(3)  # Wait before retrying
+            else:
+                print("Strzelamy na sucho")
+                return None
+ 
 
-logfire.configure(console=False)
-logfire.instrument_pydantic_ai()
+# logfire.configure(console=False)
+# logfire.instrument_pydantic_ai()
 
 load_dotenv(find_dotenv())
 
@@ -23,6 +47,8 @@ class LLMAndSaying:
         self.motion_service = motion_service
         self.video_service = video_service
         self.video_handle = video_handle
+
+        self.bluetooth = connect_bluetooth()  # Connect to Bluetooth device for shooting
 
         self.is_idle = True  # Flag to track if the robot is idle
         self.message_history = []  # Conversation history management
@@ -224,7 +250,8 @@ class LLMAndSaying:
             """
             print("Executing shoot tool")
             grabGun(motion_service, vertical_angle)
-            result = target_and_shoot_bottle(video_service, video_handle, motion_service)
+            self.bluetooth.send(b'F\n')  # Send command to shoot via Bluetooth
+            result = "Shot fired successfully!"
             return result
         
         return shoot
