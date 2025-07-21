@@ -1,8 +1,7 @@
 from pydantic_ai import BinaryContent
 from camera import take_picture
 from LLM_and_saying import LLMAndSaying
-
-
+import cv2
 
 
 class RobotActionHandler:
@@ -44,17 +43,25 @@ class RobotActionHandler:
         """Execute a single perception-decision-action cycle"""
         # Capture environment
             
-        # camera_view_bytes = take_picture(self.video_service, self.vid_handle)
-        # image_content = BinaryContent(data=camera_view_bytes, media_type='image/jpeg')
+        camera_buffer = take_picture(self.video_service, self.vid_handle, add_vertical_grid=True)
+
+        # Encode the image to JPEG, then convert to bytes for the LLM
+        _, buffer = cv2.imencode('.jpg', camera_buffer, [cv2.IMWRITE_JPEG_QUALITY, 70])
+        photo_bytes = buffer.tobytes()
+        photo_content = BinaryContent(data=photo_bytes, media_type='image/jpeg')
+
+        # save to file
+        with open("pepper_image_0.jpg", 'wb') as f:
+            f.write(buffer)
 
         # Prepare multimodal input
-        # user_input = [
-        #     f"Human voice command: '{user_command}'.\n\nThat's what you see on the front:" if user_command else "That's what you see on the front:",
-        #     image_content
-        # ]
         user_input = [
-            f"Human voice command: '{user_command}'.\n\n"
+            f"Human voice command: '{user_command}'.\n\nThat's what you see on the front:" if user_command else "That's what you see on the front (image just for your information):",
+            photo_content
         ]
+        # user_input = [
+        #     f"Human voice command: '{user_command}'.\n\n"
+        # ]
 
         # Get LLM response and execute actions
         is_idle = await self.llm_agent.generate_say_execute_response(

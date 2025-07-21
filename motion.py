@@ -1,24 +1,21 @@
 
 
 
-def grabGun(motion_service):
+def grabGun(motion_service, vertical_delta):
     # Arms motion from user have always the priority than walk arms motion
-    JointNames = ["RShoulderPitch", "RElbowRoll", "RWristYaw", "RHand"]
+    JointNames = ["RShoulderPitch", "RElbowRoll", "RElbowYaw", "LShoulderPitch", "LElbowRoll", "LElbowYaw"]
     deg_to_rad = 0.017453
-    Arm1 = [45, 45, 0, 20]
-    Arm1 = [x * deg_to_rad for x in Arm1]
-    Arm2 = [50, 50, 0, 0]
-    Arm2 = [x * deg_to_rad for x in Arm2]
+    arm_pos = [30, 40, 80, 30, -40, -30]
+    arm_pos = [x * deg_to_rad for x in arm_pos]
 
     pFractionMaxSpeed = 1.0
 
-    #motion_service.angleInterpolationWithSpeed(JointNames, Arm1, pFractionMaxSpeed)
-    motion_service.angleInterpolationWithSpeed(JointNames, Arm2, pFractionMaxSpeed)
+    motion_service.angleInterpolationWithSpeed(JointNames, arm_pos, pFractionMaxSpeed)
     #motion_service.setAngles(JointNames, Arm1, pFractionMaxSpeed)
     #motion_service.setStiffnesses("RArm", 0.0)
     #motion_service.setStiffnesses("RHand", 0.0)
-    motion_service.openHand("RHand")
-    motion_service.closeHand("RHand")
+    #motion_service.openHand("LHand")
+    #motion_service.closeHand("LHand")
 
 
 def moveFingers(motion_service):

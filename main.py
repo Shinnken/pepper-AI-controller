@@ -28,6 +28,9 @@ app.session.setClientAuthenticatorFactory(factory)
 app.start()
 
 app.session.service("ALAutonomousLife").setAutonomousAbilityEnabled("BasicAwareness", False)  # Disable basic awareness to prevent interruptions
+app.session.service("ALAutonomousLife").setAutonomousAbilityEnabled("BackgroundMovement", False)  # Disable basic awareness to prevent interruptions
+app.session.service("ALAutonomousLife").setAutonomousAbilityEnabled("AutonomousBlinking", False)  # Disable basic awareness to prevent interruptions
+
 # app.session.service("ALAutonomousLife").setState("disabled")  # Disable autonomous life to prevent interruptions
 # app.session.service("ALMotion").wakeUp()  # Wake up the robot
 # app.session.service("ALRobotPosture").goToPosture("StandInit", 0.5)  # Set initial posture
@@ -36,7 +39,8 @@ if LANGUAGE == "Polski":
     app.session.service("ALTextToSpeech").setLanguage("Polish")
 elif LANGUAGE == "English":
     app.session.service("ALTextToSpeech").setLanguage("English")
-tts = app.session.service("ALAnimatedSpeech")
+#tts = app.session.service("ALAnimatedSpeech")
+tts = app.session.service("ALTextToSpeech")
 motion_service = app.session.service("ALMotion")
 video_service = app.session.service("ALVideoDevice")
 

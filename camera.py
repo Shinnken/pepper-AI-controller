@@ -11,8 +11,8 @@ def delete_subs(name, app, video_service):
     return video_service
 
 
-def draw_angle_markers(image, center_angle=0):
-    """Draw angle markers on the bottom of the image showing camera field of view"""
+def draw_horizontal_angle_grid(image, center_angle=0):
+    """Draw HORIZONTAL angle markers on the bottom of the image."""
     image_height, image_width = image.shape[:2]
 
     # Calculate visible angles based on center_angle
@@ -51,7 +51,31 @@ def draw_angle_markers(image, center_angle=0):
     return image
 
 
-def take_picture(video_service, video_handle, center_angle=0):
+def draw_vertical_angle_grid(image):
+    """Draw VERTICAL angle markers on the left side of the image."""
+    image_height, _ = image.shape[:2]
+    yellow_color = (0, 255, 255)  # BGR for yellow
+    x_position = 30  # pixels from left edge
+
+    # Draw the main vertical line
+    cv2.line(image, (x_position, 0), (x_position, image_height), yellow_color, 2)
+
+    # V-FOV is approx +/- 25 deg. Add markers from +20 to -20 degrees.
+    vertical_fov_range = 25
+    for angle in range(20, -21, -10):
+        # Map angle to y-coordinate. Positive angle is up (lower y-value).
+        y_pos = int((image_height / 2) * (1 - angle / vertical_fov_range))
+
+        # Draw horizontal tick mark
+        cv2.line(image, (x_position - 10, y_pos), (x_position + 10, y_pos), yellow_color, 2)
+
+        # Add angle text
+        cv2.putText(image, f"{angle}deg", (x_position + 15, y_pos + 5),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, yellow_color, 2)
+    return image
+
+
+def take_picture(video_service, video_handle, center_angle=0, add_vertical_grid=False):
     frame_data = video_service.getImageRemote(video_handle)  # get frame
     width = frame_data[0]
     height = frame_data[1]
@@ -59,11 +83,10 @@ def take_picture(video_service, video_handle, center_angle=0):
 
     image_buffer = np.frombuffer(raw_bytes, dtype=np.uint8).reshape((height, width, 3))
     image_buffer = cv2.cvtColor(image_buffer, cv2.COLOR_RGB2BGR)
-    image_buffer = draw_angle_markers(image_buffer, center_angle)
+    image_buffer = draw_horizontal_angle_grid(image_buffer, center_angle)
 
-    _, buffer = cv2.imencode('.jpg', image_buffer, [cv2.IMWRITE_JPEG_QUALITY, 70])
+    if add_vertical_grid:
+        image_buffer = draw_vertical_angle_grid(image_buffer)
 
-    with open(f"pepper_image_{center_angle}.jpg", 'wb') as f:
-        f.write(buffer)
 
-    return buffer.tobytes()
+    return image_buffer

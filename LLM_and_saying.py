@@ -1,21 +1,23 @@
 import os
 from pydantic_ai import Agent, RunContext, BinaryContent
 from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.providers.openrouter import OpenRouterProvider
 from dotenv import load_dotenv, find_dotenv
 from typing import Any
-import logfire
 import time
+import cv2
+from vla_and_vision.metal_bottle_detector import target_and_shoot_bottle
+from motion import grabGun
+import logfire
 
 
-# logfire.configure(console=False)
-# logfire.instrument_pydantic_ai()
+logfire.configure(console=False)
+logfire.instrument_pydantic_ai()
 
 load_dotenv(find_dotenv())
 
 class LLMAndSaying:
-    def __init__(self, motion_service, video_service, video_handle, prompt_name='system_message', language='Polski'):
+    def __init__(self, motion_service, video_service, video_handle, prompt_name='system_message_shooting', language='Polski'):
         """Initialize the agent with system prompt and movement tools"""
 
         self.motion_service = motion_service
@@ -38,7 +40,10 @@ class LLMAndSaying:
         self.agent.tool(self._move_forward_tool(motion_service))
         self.agent.tool(self._turn_robot_tool(motion_service))
         self.agent.tool(self._look_around_tool(motion_service, video_service, video_handle))
-        self.agent.tool(self._look_forward_tool(motion_service, video_service, video_handle))
+        self.agent.tool(self._say_tool())
+        #self.agent.tool(self._look_forward_tool(motion_service, video_service, video_handle))
+        #self.agent.tool(self._manipulate_hand_tool(motion_service))
+        self.agent.tool(self._shoot_tool(motion_service, video_service, video_handle))
         self.agent.tool(self.task_finished_tool(motion_service))
 
     async def generate_say_execute_response(self, user_input, speech_service, sound_module, is_idle):
@@ -144,10 +149,19 @@ class LLMAndSaying:
                 turnHead(motion_service, angle)
                 time.sleep(0.2)  # Wait for head to move
 
-                # Take picture with appropriate center angle for markers
-                photo_bytes = take_picture(video_service, video_handle, center_angle=angle)
+                # Get raw NumPy image array
+                image_buffer = take_picture(video_service, video_handle, center_angle=angle)
+                
+                # Encode the image to JPEG, then convert to bytes for the LLM
+                _, buffer = cv2.imencode('.jpg', image_buffer, [cv2.IMWRITE_JPEG_QUALITY, 70])
+                photo_bytes = buffer.tobytes()
                 photo_content = BinaryContent(data=photo_bytes, media_type='image/jpeg')
                 photos.append(photo_content)
+
+                # save photo buffer to file (use opencv functions), place angle in the filename
+                with open(f"pepper_image_{angle}.jpg", 'wb') as f:
+                    f.write(buffer)
+
 
             # Return head to center position
             print("Returning head to center position")
@@ -164,19 +178,69 @@ class LLMAndSaying:
             from camera import take_picture
             
             print("Taking photo of what's in front")
-            
-            # Take picture from current head position (assuming head is at 0 degrees)
-            photo_bytes = take_picture(video_service, video_handle, center_angle=0)
+
+            # Get raw NumPy image array
+            image_buffer = take_picture(video_service, video_handle, center_angle=0)
+
+
+            # Encode the image to JPEG, then convert to bytes for the LLM
+            _, buffer = cv2.imencode('.jpg', image_buffer, [cv2.IMWRITE_JPEG_QUALITY, 70])
+            photo_bytes = buffer.tobytes()
             photo_content = BinaryContent(data=photo_bytes, media_type='image/jpeg')
-            
+
             return photo_content
         
         return look_forward
 
+    def _manipulate_hand_tool(self, motion_service):
+        """Create hand manipulation tool for the agent"""
+        def manipulate_robot_hand(ctx: RunContext[Any], hand: str, action: str):
+            """
+            Manipulate the robot's hand.
+            :param hand: which hand to manipulate, either "left" or "right".
+            :param action: what to do with the hand, either "open" or "close".
+            """
+            print(f"Manipulating {hand} hand to {action}")
+            hand_name = "RHand" if hand.lower() == "right" else "LHand"
+
+            if action.lower() == "open":
+                motion_service.openHand(hand_name)
+            else:  # "close"
+                motion_service.closeHand(hand_name)
+
+            return f"Successfully {action}ed {hand} hand."
+
+        return manipulate_robot_hand
+
+    def _shoot_tool(self, motion_service, video_service, video_handle):
+        """Create tool for the agent"""
+        def shoot(ctx: RunContext[Any], vertical_angle: float):
+            """
+            Shoot. Calling that tool shoots using airsoft gun to the front of you.
+            Ensure object you want to shoot is exactly in front of you (on 0 deg).
+            If not exacly at 0 deg, rotate yourself first.
+
+            :param vertical_angle: angle of vertical angle in degrees (positive = up, negative = down)
+            """
+            print("Executing shoot tool")
+            grabGun(motion_service, vertical_angle)
+            result = target_and_shoot_bottle(video_service, video_handle, motion_service)
+            return result
+        
+        return shoot
+
+    def _say_tool(self):
+        """Create say tool for the agent"""
+        def say(ctx: RunContext[Any], message: str):
+            """Say something to the human. Use that tool when you want to tell something to human."""
+            print(f"Say: '{message}'")
+
+        return say
+
     def task_finished_tool(self, motion_service):
         """Create task finished tool for the agent"""
-        def task_finished(ctx: RunContext[Any]):
-            """Signal that the task given you by a human is finished or can't be done."""
-            print("Task finished - returning to idle state")
+        def task_finished(ctx: RunContext[Any], reason: str):
+            """Signal that the task given you by a human is finished or can't be done. Write short reason why you think task is finished."""
+            print(f"Task finished - returning to idle state. Reason: '{reason}'")
             self.is_idle = True
         return task_finished
