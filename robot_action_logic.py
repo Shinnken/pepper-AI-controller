@@ -15,7 +15,7 @@ class RobotActionHandler:
         self.is_idle = True
 
     def close_bt(self):
-        self.llm_agent.bluetooth.close() if self.llm_agent.bluetooth else None
+        self.llm_agent.bt.close() if self.llm_agent.bt else None
 
     async def run_task(self, initial_command):
         """Execute complete robot task from initial command until completion"""

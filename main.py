@@ -17,9 +17,9 @@ FRAMERATE = 5
 LANGUAGE = "Polski"
 # LANGUAGE = "English"
 
-# app = qi.Application(sys.argv, url="tcps://192.168.113.1:9503")  # Pepper
-# app = qi.Application(sys.argv, url="tcps://10.171.4.132:9503")  # Pepper
-app = qi.Application(sys.argv, url="tcps://192.168.1.110:9503")  # Pepper
+app = qi.Application(sys.argv, url="tcps://192.168.74.1:9503")  # Pepper
+# app = qi.Application(sys.argv, url="tcps://10.172.131.1:9503")  # Pepper
+# app = qi.Application(sys.argv, url="tcps://192.168.1.110:9503")  # Pepper
 # app = qi.Application(sys.argv, url="tcps://192.168.1.104:9503")    # Nao
 
 logins = ("nao", "nao")
@@ -76,16 +76,17 @@ async def main():
 
     # Main command loop
     while True:
-        try:
-            await asyncio.sleep(0.1)
+        # try:
+        await asyncio.sleep(0.1)
 
-            # Start new task if none running
-            if (current_robot_task is None or current_robot_task.done()) and sound_module_instance.stt_output:
-                command = sound_module_instance.stt_output
-                sound_module_instance.stt_output = None
-                current_robot_task = asyncio.create_task(robot_action_handler.run_task(command))
-        finally:
-            robot_action_handler.close_bt()
+        # Start new task if none running
+        if (current_robot_task is None or current_robot_task.done()) and sound_module_instance.stt_output:
+            command = sound_module_instance.stt_output
+            sound_module_instance.stt_output = None
+            current_robot_task = asyncio.create_task(robot_action_handler.run_task(command))
+        # except Exception as e:
+        #     print(f"Error occurred: {e}")
+        #     robot_action_handler.close_bt()
 
 
 if __name__ == "__main__":

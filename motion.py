@@ -3,9 +3,11 @@
 
 def grabGun(motion_service, vertical_delta):
     # Arms motion from user have always the priority than walk arms motion
-    JointNames = ["RShoulderPitch", "RElbowRoll", "RElbowYaw", "LShoulderPitch", "LElbowRoll", "LElbowYaw"]
+    # JointNames = ["RShoulderPitch", "RElbowRoll", "RElbowYaw", "LShoulderPitch", "LElbowRoll", "LElbowYaw"]
+    JointNames = ["LShoulderPitch", "LElbowRoll", "LElbowYaw"]
     deg_to_rad = 0.017453
-    arm_pos = [-50, 30, -90, 30 - vertical_delta, -40, -80]
+    # arm_pos = [-50, 30, -90, 30 - vertical_delta, -40, -80]
+    arm_pos = [30 - vertical_delta, -40, -80]
     arm_pos = [x * deg_to_rad for x in arm_pos]
 
     pFractionMaxSpeed = 1.0
@@ -45,7 +47,7 @@ def lookForward(motion_service):
     pFractionMaxSpeed = 0.8
     # motion_service.setStiffnesses("Head", 1.0)
     # time.sleep(0.5)
-    motion_service.wakeUp()
+    # motion_service.wakeUp()
     motion_service.angleInterpolationWithSpeed(JointNames, Angles, pFractionMaxSpeed)
     #motion_service.setStiffnesses("Head", 0.0)
 

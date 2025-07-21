@@ -48,7 +48,7 @@ class LLMAndSaying:
         self.video_service = video_service
         self.video_handle = video_handle
 
-        self.bluetooth = connect_bluetooth()  # Connect to Bluetooth device for shooting
+        self.bt = connect_bluetooth()  # Connect to Bluetooth device for shooting
 
         self.is_idle = True  # Flag to track if the robot is idle
         self.message_history = []  # Conversation history management
@@ -69,7 +69,7 @@ class LLMAndSaying:
         #self.agent.tool(self._say_tool(sound_module, speech_service))
         #self.agent.tool(self._look_forward_tool(motion_service, video_service, video_handle))
         #self.agent.tool(self._manipulate_hand_tool(motion_service))
-        self.agent.tool(self._shoot_tool(motion_service, video_service, video_handle))
+        self.agent.tool(self._shoot_tool(motion_service, video_service, video_handle, self.bt))
         self.agent.tool(self.task_finished_tool(motion_service))
 
     async def generate_say_execute_response(self, user_input, speech_service, sound_module, is_idle):
@@ -139,7 +139,6 @@ class LLMAndSaying:
                 meters = 0
 
             print(f"Moving forward {meters} meters")
-            # motion_service.wakeUp()
             # print("Waking start")
             motion_service.moveTo(meters, 0.0, 0.0)
             # print("Waking end")
@@ -153,7 +152,6 @@ class LLMAndSaying:
             print(f"Turning {degrees} degrees")
             # Convert degrees to radians
             radians = degrees * 0.01745
-            motion_service.wakeUp()
             motion_service.moveTo(0.0, 0.0, radians)
             # print("Turning end")
 
@@ -238,7 +236,7 @@ class LLMAndSaying:
 
         return manipulate_robot_hand
 
-    def _shoot_tool(self, motion_service, video_service, video_handle):
+    def _shoot_tool(self, motion_service, video_service, video_handle, bt):
         """Create tool for the agent"""
         def shoot(ctx: RunContext[Any], vertical_angle: float):
             """
@@ -250,7 +248,7 @@ class LLMAndSaying:
             """
             print("Executing shoot tool")
             grabGun(motion_service, vertical_angle)
-            self.bluetooth.send(b'F\n')  # Send command to shoot via Bluetooth
+            bt.send(b'F\n')  # Send command to shoot via Bluetooth
             result = "Shot fired successfully!"
             return result
         
