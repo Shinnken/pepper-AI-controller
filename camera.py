@@ -16,16 +16,16 @@ def draw_horizontal_angle_grid(image, center_angle=0):
     image_height, image_width = image.shape[:2]
 
     # Calculate visible angles based on center_angle
-    visible_range = 35  # 35 degrees each side
+    visible_range = 28  # 28 degrees each side
     min_angle = center_angle - visible_range
     max_angle = center_angle + visible_range
 
-    # Generate angle markers within visible range, with 5-degree margins
+    # Generate angle markers every 5 degrees
     angles = []
-    current = min_angle + 5  # Start 5 degrees from edge
-    while current <= max_angle - 5:  # End 5 degrees from edge
-        angles.append(current)
-        current += 10
+    start_angle = int((min_angle + 4) // 5) * 5  # Round up to nearest multiple of 5
+    end_angle = int(max_angle // 5) * 5  # Round down to nearest multiple of 5
+    for angle in range(start_angle, end_angle + 1, 5):
+        angles.append(angle)
 
     # Calculate y position for markers (closer to bottom to take less photo space)
     y_position = image_height - 25
@@ -45,7 +45,7 @@ def draw_horizontal_angle_grid(image, center_angle=0):
         cv2.line(image, (x_position, y_position - 10), (x_position, y_position + 10), yellow_color, 2)
 
         # Add angle text above the line
-        cv2.putText(image, f"{angle}deg", (x_position - 15, y_position - 15),
+        cv2.putText(image, f"{angle}", (x_position - 10, y_position - 15),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, yellow_color, 2)
 
     return image
@@ -60,9 +60,9 @@ def draw_vertical_angle_grid(image):
     # Draw the main vertical line
     cv2.line(image, (x_position, 0), (x_position, image_height), yellow_color, 2)
 
-    # V-FOV is approx +/- 25 deg. Add markers from +20 to -20 degrees.
-    vertical_fov_range = 25
-    for angle in range(20, -21, -10):
+    # V-FOV is approx +/- 22 deg. Add markers from +20 to -20 degrees every 5 degrees.
+    vertical_fov_range = 22
+    for angle in range(20, -21, -5):
         # Map angle to y-coordinate. Positive angle is up (lower y-value).
         y_pos = int((image_height / 2) * (1 - angle / vertical_fov_range))
 
@@ -70,7 +70,7 @@ def draw_vertical_angle_grid(image):
         cv2.line(image, (x_position - 10, y_pos), (x_position + 10, y_pos), yellow_color, 2)
 
         # Add angle text
-        cv2.putText(image, f"{angle}deg", (x_position + 15, y_pos + 5),
+        cv2.putText(image, f"{angle}", (x_position + 15, y_pos + 5),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, yellow_color, 2)
     return image
 
