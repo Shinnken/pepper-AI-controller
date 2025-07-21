@@ -11,7 +11,7 @@ class RobotActionHandler:
         self.video_service = video_service
         self.vid_handle = vid_handle
         # Initialize LLM agent here
-        self.llm_agent = LLMAndSaying(motion_service, video_service, vid_handle, language=language)
+        self.llm_agent = LLMAndSaying(motion_service, video_service, vid_handle, sound_module=sound_module, speech_service=tts, language=language)
         self.is_idle = True
 
     def close_bt(self):
@@ -54,7 +54,7 @@ class RobotActionHandler:
         photo_content = BinaryContent(data=photo_bytes, media_type='image/jpeg')
 
         # save to file
-        with open("pepper_image_0.jpg", 'wb') as f:
+        with open("pepper_image_front.jpg", 'wb') as f:
             f.write(buffer)
 
         # Prepare multimodal input

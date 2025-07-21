@@ -64,6 +64,7 @@ sound_module_instance.start()
 async def main():
     print("Start")
     sound_module_instance.setListening()
+    grabGun(motion_service, 0.0)
 
     # Initialize robot action handler
     robot_action_handler = RobotActionHandler(

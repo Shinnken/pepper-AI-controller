@@ -41,7 +41,7 @@ def connect_bluetooth(retries=3, mac_address='00:21:13:02:1C:30', port=None):
 load_dotenv(find_dotenv())
 
 class LLMAndSaying:
-    def __init__(self, motion_service, video_service, video_handle, prompt_name='system_message_shooting', language='Polski'):
+    def __init__(self, motion_service, video_service, video_handle, sound_module, speech_service, prompt_name='system_message_shooting', language='Polski'):
         """Initialize the agent with system prompt and movement tools"""
 
         self.motion_service = motion_service
@@ -66,7 +66,7 @@ class LLMAndSaying:
         self.agent.tool(self._move_forward_tool(motion_service))
         self.agent.tool(self._turn_robot_tool(motion_service))
         self.agent.tool(self._look_around_tool(motion_service, video_service, video_handle))
-        self.agent.tool(self._say_tool())
+        #self.agent.tool(self._say_tool(sound_module, speech_service))
         #self.agent.tool(self._look_forward_tool(motion_service, video_service, video_handle))
         #self.agent.tool(self._manipulate_hand_tool(motion_service))
         self.agent.tool(self._shoot_tool(motion_service, video_service, video_handle))
@@ -256,11 +256,44 @@ class LLMAndSaying:
         
         return shoot
 
-    def _say_tool(self):
+    def _say_tool(self, sound_module, speech_service):
         """Create say tool for the agent"""
-        def say(ctx: RunContext[Any], message: str):
+        async def say(ctx: RunContext[Any], message: str):
             """Say something to the human. Use that tool when you want to tell something to human."""
-            print(f"Say: '{message}'")
+            print(f"Saying: {message}")
+            full_response = ""
+            sentence_buffer = ""
+            try:
+                async with self.agent.run_stream(message, message_history=self.message_history) as result:
+                    # tts.say(random.choice(animations))
+                    async for token in result.stream_text(delta=True):
+                        # Check if adding this token would exceed 1000 characters
+                        if len(full_response) + len(token) > 2000:
+                            break
+
+                        print(token, end='', flush=True)
+                        full_response += token
+                        sentence_buffer += token
+
+                        # Do not listen while talking
+                        if sound_module.is_listening:
+                            sound_module.setNotListening()
+
+                        # If token ends with sentence delimiter, speak the buffered sentence
+                        if token.endswith('.') or token.endswith('!') or token.endswith('?'):  # or token.endswith(','):
+                            if sentence_buffer.strip():
+                                speech_service.say(sentence_buffer.strip())
+                                sentence_buffer = ""
+
+                    # Speak final sentence if any
+                    if sentence_buffer.strip():
+                        speech_service.say(sentence_buffer.strip())
+
+                    # Update message history with new messages
+                    self.message_history.extend(result.new_messages())
+            finally:
+                # Always restore listening, even if the task was cancelled
+                sound_module.setListening()
 
         return say
 

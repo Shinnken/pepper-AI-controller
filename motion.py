@@ -5,7 +5,7 @@ def grabGun(motion_service, vertical_delta):
     # Arms motion from user have always the priority than walk arms motion
     JointNames = ["RShoulderPitch", "RElbowRoll", "RElbowYaw", "LShoulderPitch", "LElbowRoll", "LElbowYaw"]
     deg_to_rad = 0.017453
-    arm_pos = [30, 40, 80, 30, -40, -30]
+    arm_pos = [30, 40, 80, 30 - vertical_delta, -40, -80]
     arm_pos = [x * deg_to_rad for x in arm_pos]
 
     pFractionMaxSpeed = 1.0
