@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nerf Gun Controller</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        .button {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .button:hover {
+            background: #cc3333;
+            transform: translateY(-2px);
+        }
+        
+        .button:active {
+            transform: translateY(0);
+        }
+        
+        .button.secondary {
+            background: #4444ff;
+        }
+        
+        .button.secondary:hover {
+            background: #3333cc;
+        }
+        
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .input-group {
+            margin: 20px 0;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        .rapid-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .rapid-controls input {
+            width: 80px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Nerf Gun Controller</h1>
+        
+        <div class="input-group">
+            <label for="esp-ip">ESP8266 IP Address:</label>
+            <input type="text" id="esp-ip" placeholder="192.168.1.100" value="192.168.1.100">
+        </div>
+        
+        <button class="button" onclick="fireNerfGun()">🔥 FIRE!</button>
+        <button class="button secondary" onclick="checkStatus()">📡 Status</button>
+        
+        <div class="rapid-controls">
+            <label for="shots">Shots:</label>
+            <input type="number" id="shots" value="3" min="1" max="10">
+            
+            <label for="delay">Delay (s):</label>
+            <input type="number" id="delay" value="1" min="0.1" max="5" step="0.1">
+            
+            <button class="button" onclick="rapidFire()">⚡ Rapid Fire</button>
+        </div>
+        
+        <div id="status" class="status"></div>
+        
+        <hr>
+        <p><strong>Setup Instructions:</strong></p>
+        <ol style="text-align: left;">
+            <li>Update WiFi credentials in <code>user_config.h</code></li>
+            <li>Build and upload firmware to ESP8266</li>
+            <li>Connect trigger circuit to GPIO12 (D6)</li>
+            <li>Find ESP8266 IP from serial monitor</li>
+            <li>Enter IP address above and start firing!</li>
+        </ol>
+    </div>
+
+    <script>
+        function showStatus(message, isError = false) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${isError ? 'error' : 'success'}`;
+            statusDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        }
+        
+        function getEspUrl() {
+            const ip = document.getElementById('esp-ip').value.trim();
+            if (!ip) {
+                showStatus('Please enter ESP8266 IP address', true);
+                return null;
+            }
+            return `http://${ip}`;
+        }
+        
+        async function fireNerfGun() {
+            const baseUrl = getEspUrl();
+            if (!baseUrl) return;
+            
+            try {
+                showStatus('Firing nerf gun...');
+                const response = await fetch(`${baseUrl}/fire`, {
+                    method: 'GET',
+                    timeout: 5000
+                });
+                
+                if (response.ok) {
+                    const data = await response.json().catch(() => ({ message: 'Success' }));
+                    showStatus(`🎯 ${data.message || 'Nerf gun fired!'}`);
+                } else {
+                    showStatus(`Error: HTTP ${response.status}`, true);
+                }
+            } catch (error) {
+                showStatus(`Connection error: ${error.message}`, true);
+            }
+        }
+        
+        async function checkStatus() {
+            const baseUrl = getEspUrl();
+            if (!baseUrl) return;
+            
+            try {
+                showStatus('Checking status...');
+                const response = await fetch(`${baseUrl}/status`, {
+                    method: 'GET',
+                    timeout: 5000
+                });
+                
+                if (response.ok) {
+                    const data = await response.json().catch(() => ({ status: 'connected' }));
+                    showStatus(`📡 Status: ${data.status || 'connected'} - ${data.message || 'Ready'}`);
+                } else {
+                    showStatus(`Error: HTTP ${response.status}`, true);
+                }
+            } catch (error) {
+                showStatus(`Connection error: ${error.message}`, true);
+            }
+        }
+        
+        async function rapidFire() {
+            const baseUrl = getEspUrl();
+            if (!baseUrl) return;
+            
+            const shots = parseInt(document.getElementById('shots').value);
+            const delay = parseFloat(document.getElementById('delay').value) * 1000;
+            
+            if (shots < 1 || shots > 10) {
+                showStatus('Shots must be between 1 and 10', true);
+                return;
+            }
+            
+            let successCount = 0;
+            
+            for (let i = 0; i < shots; i++) {
+                try {
+                    showStatus(`Firing shot ${i + 1}/${shots}...`);
+                    
+                    const response = await fetch(`${baseUrl}/fire`, {
+                        method: 'GET',
+                        timeout: 5000
+                    });
+                    
+                    if (response.ok) {
+                        successCount++;
+                    }
+                    
+                    if (i < shots - 1) {
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    }
+                } catch (error) {
+                    showStatus(`Shot ${i + 1} failed: ${error.message}`, true);
+                }
+            }
+            
+            showStatus(`🏆 Rapid fire complete: ${successCount}/${shots} successful shots`);
+        }
+        
+        // Load saved IP from localStorage
+        window.onload = function() {
+            const savedIp = localStorage.getItem('esp-ip');
+            if (savedIp) {
+                document.getElementById('esp-ip').value = savedIp;
+            }
+        };
+        
+        // Save IP to localStorage when changed
+        document.getElementById('esp-ip').addEventListener('input', function() {
+            localStorage.setItem('esp-ip', this.value);
+        });
+        
+        // Allow Enter key to fire
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                fireNerfGun();
+            }
+        });
+    </script>
+</body>
+</html>
