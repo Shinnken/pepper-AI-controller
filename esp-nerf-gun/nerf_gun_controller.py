@@ -43,6 +43,34 @@ class NerfGunController:
             print(f"❌ Error: {e}")
             return False
     
+    def fire_half(self) -> bool:
+        """Fire the nerf gun with half duration"""
+        try:
+            print("🎯 Firing nerf gun (half duration)...")
+            response = requests.get(f"{self.base_url}/fire_half", timeout=self.timeout)
+            
+            if response.status_code == 200:
+                print("✅ Success! Nerf gun fired (half duration)!")
+                try:
+                    data = response.json()
+                    print(f"📝 Response: {data.get('message', 'No message')}")
+                except:
+                    print(f"📝 Response: {response.text[:100]}...")
+                return True
+            else:
+                print(f"❌ Error: HTTP {response.status_code}")
+                return False
+                
+        except requests.exceptions.Timeout:
+            print("⏰ Timeout: ESP8266 did not respond")
+            return False
+        except requests.exceptions.ConnectionError:
+            print("🔌 Connection Error: Could not connect to ESP8266")
+            return False
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            return False
+    
     def check_status(self) -> Optional[dict]:
         """Check if the nerf gun is ready"""
         try:
@@ -98,6 +126,9 @@ def main():
     # Fire command
     fire_parser = subparsers.add_parser("fire", help="Fire the nerf gun once")
     
+    # Fire half command
+    fire_half_parser = subparsers.add_parser("fire_half", help="Fire the nerf gun with half duration")
+    
     # Status command
     status_parser = subparsers.add_parser("status", help="Check nerf gun status")
     
@@ -121,6 +152,9 @@ def main():
     if args.command == "fire":
         controller.fire()
         
+    elif args.command == "fire_half":
+        controller.fire_half()
+        
     elif args.command == "status":
         controller.check_status()
         
@@ -129,7 +163,7 @@ def main():
         
     elif args.command == "interactive":
         print("🎮 Interactive ESP WiFi Nerf Gun Controller")
-        print("Commands: fire, status, rapid [shots] [delay], quit")
+        print("Commands: fire, fire_half, status, rapid [shots] [delay], quit")
         
         while True:
             try:
@@ -144,6 +178,9 @@ def main():
                 elif cmd[0].lower() == 'fire':
                     controller.fire()
                     
+                elif cmd[0].lower() == 'fire_half':
+                    controller.fire_half()
+                    
                 elif cmd[0].lower() == 'status':
                     controller.check_status()
                     
@@ -153,7 +190,7 @@ def main():
                     controller.rapid_fire(shots, delay)
                     
                 else:
-                    print("❓ Unknown command. Use: fire, status, rapid [shots] [delay], quit")
+                    print("❓ Unknown command. Use: fire, fire_half, status, rapid [shots] [delay], quit")
                     
             except KeyboardInterrupt:
                 print("\n👋 Goodbye!")

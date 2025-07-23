@@ -115,6 +115,7 @@
         </div>
         
         <button class="button" onclick="fireNerfGun()">🔥 FIRE!</button>
+        <button class="button" onclick="fireNerfGunHalf()">🎯 FIRE HALF</button>
         <button class="button secondary" onclick="checkStatus()">📡 Status</button>
         
         <div class="rapid-controls">
@@ -175,6 +176,28 @@
                 if (response.ok) {
                     const data = await response.json().catch(() => ({ message: 'Success' }));
                     showStatus(`🎯 ${data.message || 'Nerf gun fired!'}`);
+                } else {
+                    showStatus(`Error: HTTP ${response.status}`, true);
+                }
+            } catch (error) {
+                showStatus(`Connection error: ${error.message}`, true);
+            }
+        }
+        
+        async function fireNerfGunHalf() {
+            const baseUrl = getEspUrl();
+            if (!baseUrl) return;
+            
+            try {
+                showStatus('Firing nerf gun (half duration)...');
+                const response = await fetch(`${baseUrl}/fire_half`, {
+                    method: 'GET',
+                    timeout: 5000
+                });
+                
+                if (response.ok) {
+                    const data = await response.json().catch(() => ({ message: 'Success' }));
+                    showStatus(`🎯 ${data.message || 'Nerf gun fired (half duration)!'}`);
                 } else {
                     showStatus(`Error: HTTP ${response.status}`, true);
                 }
