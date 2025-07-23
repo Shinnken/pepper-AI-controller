@@ -204,15 +204,3 @@ if (os_strstr(data, "Authorization: Bearer YOUR_SECRET_TOKEN") == NULL) {
 }
 ```
 
-## 📞 Support
-
-If you encounter issues:
-1. Check the serial monitor output for debug messages
-2. Verify all hardware connections
-3. Test components individually
-4. Check network connectivity
-5. Review the troubleshooting section
-
-## ⚠️ Disclaimer
-
-This project is for educational purposes. Users are responsible for safe operation and compliance with local laws and regulations regarding projectile devices.

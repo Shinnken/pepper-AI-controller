@@ -18,9 +18,9 @@ LANGUAGE = "Polski"
 # LANGUAGE = "English"
 
 print("Connecting to robot")
-#app = qi.Application(sys.argv, url="tcps://192.168.74.1:9503")  # Pepper
+app = qi.Application(sys.argv, url="tcps://192.168.74.1:9503")  # Pepper
 # app = qi.Application(sys.argv, url="tcps://10.172.131.1:9503")  # Pepper
-app = qi.Application(sys.argv, url="tcps://192.168.1.110:9503")  # Pepper
+# app = qi.Application(sys.argv, url="tcps://192.168.1.110:9503")  # Pepper netis_5G
 # app = qi.Application(sys.argv, url="tcps://192.168.1.104:9503")    # Nao
 
 logins = ("nao", "nao")
