@@ -17,9 +17,10 @@ FRAMERATE = 5
 LANGUAGE = "Polski"
 # LANGUAGE = "English"
 
-app = qi.Application(sys.argv, url="tcps://192.168.74.1:9503")  # Pepper
+print("Connecting to robot")
+#app = qi.Application(sys.argv, url="tcps://192.168.74.1:9503")  # Pepper
 # app = qi.Application(sys.argv, url="tcps://10.172.131.1:9503")  # Pepper
-# app = qi.Application(sys.argv, url="tcps://192.168.1.110:9503")  # Pepper
+app = qi.Application(sys.argv, url="tcps://192.168.1.110:9503")  # Pepper
 # app = qi.Application(sys.argv, url="tcps://192.168.1.104:9503")    # Nao
 
 logins = ("nao", "nao")
@@ -64,13 +65,15 @@ sound_module_instance.start()
 async def main():
     print("Start")
     sound_module_instance.setListening()
-    grabGun(motion_service, 0.0)
+    #grabGun(motion_service, 0)
 
     # Initialize robot action handler
     robot_action_handler = RobotActionHandler(
         motion_service, video_service, vid_handle,
         sound_module_instance, tts, LANGUAGE
     )
+
+
 
     current_robot_task = None
 
