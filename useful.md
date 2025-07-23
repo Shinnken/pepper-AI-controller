@@ -81,6 +81,9 @@ groups $USER
 # Fire once
 .venv/bin/python nerf_gun_controller.py 192.168.1.30 fire
 
+# Fire with half duration
+.venv/bin/python nerf_gun_controller.py 192.168.1.30 fire_half
+
 # Replace 192.168.1.30 with your ESP8266's IP address
 ```
 
@@ -106,6 +109,7 @@ groups $USER
 
 # Available commands in interactive mode:
 # - fire          : Fire once
+# - fire_half      : Fire with half duration
 # - status         : Check status
 # - rapid 3 1      : Rapid fire 3 shots with 1s delay
 # - quit / exit / q: Exit interactive mode
@@ -120,6 +124,9 @@ groups $USER
 # Fire the nerf gun
 curl http://192.168.1.30/fire
 
+# Fire with half duration
+curl http://192.168.1.30/fire_half
+
 # Check status
 curl http://192.168.1.30/status
 
@@ -133,8 +140,9 @@ curl http://192.168.1.30/
 http://192.168.1.30
 
 # Direct API endpoints:
-http://192.168.1.30/fire    - Fire the nerf gun
-http://192.168.1.30/status  - Check status
+http://192.168.1.30/fire      - Fire the nerf gun
+http://192.168.1.30/fire_half - Fire the nerf gun (half duration)
+http://192.168.1.30/status    - Check status
 ```
 
 ---
