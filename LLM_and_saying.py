@@ -7,7 +7,7 @@ from typing import Any
 import time
 import cv2
 from vla_and_vision.metal_bottle_detector import target_and_shoot_bottle
-from motion import grabGun
+from motion import grabGun, lowerGun
 import logfire
 
 def connect_bluetooth(retries=3, mac_address='00:21:13:02:1C:30', port=None):
@@ -175,7 +175,7 @@ class LLMAndSaying:
 
                 # Get raw NumPy image array
                 image_buffer = take_picture(video_service, video_handle, center_angle=angle)
-                
+
                 # Encode the image to JPEG, then convert to bytes for the LLM
                 _, buffer = cv2.imencode('.jpg', image_buffer, [cv2.IMWRITE_JPEG_QUALITY, 70])
                 photo_bytes = buffer.tobytes()
@@ -185,7 +185,6 @@ class LLMAndSaying:
                 # save photo buffer to file (use opencv functions), place angle in the filename
                 with open(f"pepper_image_{angle}.jpg", 'wb') as f:
                     f.write(buffer)
-
 
             # Return head to center position
             print("Returning head to center position")
@@ -246,9 +245,11 @@ class LLMAndSaying:
 
             :param vertical_angle: angle of vertical angle in degrees (positive = up, negative = down)
             """
-            print("Executing shoot tool")
+            print(f"Executing shoot tool, vertical angle: {vertical_angle} deg.")
             grabGun(motion_service, vertical_angle)
             bt.send(b'F\n')  # Send command to shoot via Bluetooth
+            time.sleep(1)    # Wait for gun to shoot
+            lowerGun(motion_service)
             result = "Shot fired successfully!"
             return result
         
