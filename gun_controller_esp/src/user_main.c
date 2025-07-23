@@ -115,6 +115,26 @@ void fire_nerf_gun(void)
     os_timer_arm(&trigger_timer, NERF_TRIGGER_DURATION, 0);
 }
 
+void fire_nerf_gun_half(void)
+{
+    os_printf("Firing nerf gun (half duration)!\n");
+    
+    // Turn on trigger
+    GPIO_OUTPUT_SET(NERF_TRIGGER_PIN, 1);
+    
+    // Start LED firing blink sequence (shorter for half fire)
+    fire_blink_count = 0;
+    os_timer_disarm(&fire_led_timer);
+    os_timer_setfn(&fire_led_timer, (os_timer_func_t *)fire_led_blink, NULL);
+    os_timer_arm(&fire_led_timer, 50, 0);  // Start immediately
+    
+    // Set timer to turn off trigger after HALF duration
+    static os_timer_t trigger_timer_half;
+    os_timer_disarm(&trigger_timer_half);
+    os_timer_setfn(&trigger_timer_half, (os_timer_func_t *)trigger_off, NULL);
+    os_timer_arm(&trigger_timer_half, NERF_TRIGGER_DURATION / 2, 0);
+}
+
 void ICACHE_FLASH_ATTR http_recv_cb(void *arg, char *data, unsigned short length)
 {
     struct espconn *conn = (struct espconn *)arg;
@@ -125,7 +145,17 @@ void ICACHE_FLASH_ATTR http_recv_cb(void *arg, char *data, unsigned short length
     bool should_fire = false;
     
     // Check if this is a fire request
-    if (os_strstr(data, "GET /fire") != NULL) {
+    if (os_strstr(data, "GET /fire_half") != NULL) {
+        should_fire = true;
+        fire_nerf_gun_half();
+        os_sprintf(response, 
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: application/json\r\n"
+            "Access-Control-Allow-Origin: *\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+            "{\"status\":\"fired_half\",\"message\":\"Nerf gun fired at half duration!\"}\r\n");
+    } else if (os_strstr(data, "GET /fire") != NULL) {
         should_fire = true;
         fire_nerf_gun();
         os_sprintf(response, 
@@ -155,6 +185,7 @@ void ICACHE_FLASH_ATTR http_recv_cb(void *arg, char *data, unsigned short length
             "<p>Available endpoints:</p>"
             "<ul>"
             "<li><a href=\"/fire\">POST/GET /fire</a> - Fire the nerf gun</li>"
+            "<li><a href=\"/fire_half\">POST/GET /fire_half</a> - Fire the nerf gun (half duration)</li>"
             "<li><a href=\"/status\">GET /status</a> - Check status</li>"
             "</ul>"
             "</body></html>\r\n");
