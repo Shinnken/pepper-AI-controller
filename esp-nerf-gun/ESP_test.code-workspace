@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "../ESP_test"
+		},
+		{
+			"name": "250722-190354-esp8266-nonos-sdk-blink",
+			"path": "../250722-190354-esp8266-nonos-sdk-blink"
+		}
+	],
+	"settings": {}
+}
