@@ -7,7 +7,7 @@ from typing import Any
 import time
 import cv2
 from vla_and_vision.metal_bottle_detector import target_and_shoot_bottle
-from motion import grabGun, lowerGun
+from motion import grabGun, lowerGun, turnHead
 import logfire
 import requests
 
@@ -126,12 +126,19 @@ class LLMAndSaying:
     def _turn_robot_tool(self, motion_service):
         """Create turn robot tool for the agent"""
         def turn_robot(ctx: RunContext[Any], degrees: float):
-            """Turn the robot by specified angle in degrees (positive = left, negative = right)"""
+            """
+            Turn the robot by specified angle in degrees (positive = left, negative = right).
+            param degrees: angle to turn. Hint: angle value you see on the photo under the target is the value you need to provide here (keep sign as well).
+            """
             print(f"Turning {degrees} degrees")
             # Convert degrees to radians
+            # add additional 7 degrees with same vector for calm friction
+            if abs(degrees) <= 20:
+                degrees = degrees + 7 if degrees > 0 else degrees - 7
             radians = degrees * 0.01745
             motion_service.moveTo(0.0, 0.0, radians)
-            # print("Turning end")
+            motion_service.waitUntilMoveIsFinished()
+            turnHead(motion_service, 0)  # zeroing head position
 
         return turn_robot
 
@@ -228,6 +235,7 @@ class LLMAndSaying:
             time.sleep(1)  # Wait for hand ro raise
             requests.get(f'{GUN_API}/fire')
             time.sleep(1)    # Wait for gun to shoot
+            time.sleep(10) # for barrel kierunek analisys
             lowerGun(motion_service)
             result = "Shot fired successfully!"
             return result

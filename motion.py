@@ -7,10 +7,10 @@ def grabGun(motion_service, vertical_delta):
     JointNames = ["RShoulderPitch", "RShoulderRoll", "RElbowRoll", "RElbowYaw"]
     deg_to_rad = 0.017453
     # arm_pos = [-50, 30, -90, 30 - vertical_delta, -40, -80]
-    arm_pos = [-20 - vertical_delta, -0.5, 20, 0]
+    arm_pos = [-10 - vertical_delta, -0.5, 12, 0]
     arm_pos = [x * deg_to_rad for x in arm_pos]
 
-    pFractionMaxSpeed = 1.0
+    pFractionMaxSpeed = 0.5
 
     motion_service.angleInterpolationWithSpeed(JointNames, arm_pos, pFractionMaxSpeed)
     #motion_service.setAngles(JointNames, Arm1, pFractionMaxSpeed)
