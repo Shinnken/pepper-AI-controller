@@ -15,10 +15,11 @@ COLORSPACE_INDEX = 11
 FRAMERATE = 5
 
 LANGUAGE = "Polski"
-# LANGUAGE = "English"
+#LANGUAGE = "English"
 
 print("Connecting to robot")
-app = qi.Application(sys.argv, url="tcps://192.168.74.1:9503")  # Pepper
+# app = qi.Application(sys.argv, url="tcps://192.168.74.1:9503")  # Pepper
+app = qi.Application(sys.argv, url="tcps://10.65.237.1:9503")  # Pepper
 # app = qi.Application(sys.argv, url="tcps://10.172.131.1:9503")  # Pepper
 # app = qi.Application(sys.argv, url="tcps://192.168.1.110:9503")  # Pepper netis_5G
 # app = qi.Application(sys.argv, url="tcps://192.168.1.104:9503")    # Nao
@@ -66,6 +67,14 @@ async def main():
     print("Start")
     sound_module_instance.setListening()
     #grabGun(motion_service, 0)
+    # motion_service.moveInit()
+    # motion_service.wakeUp()
+    # motion_service.stopMove()
+
+    #motion_service.move(0,0, 0.5)
+    #motion_service.moveTo(0, 0, -0.5)
+    #motion_service.waitUntilMoveIsFinished()
+    #motion_service.moveTo(0, 0, 0.5)
 
     # Initialize robot action handler
     robot_action_handler = RobotActionHandler(

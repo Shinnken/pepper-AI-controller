@@ -26,7 +26,7 @@ class RobotActionHandler:
 
         print("[ROBOT_TASK] Entering task execution loop...")
         while not self.is_idle:
-            print(f"[ROBOT_TASK] Executing action step with command: '{current_command}'")
+            #print(f"[ROBOT_TASK] Executing action step with command: '{current_command}'")
             self.is_idle = await self._execute_single_step(current_command)
             print(f"[ROBOT_TASK] Action step completed. Is idle: {self.is_idle}")
 
