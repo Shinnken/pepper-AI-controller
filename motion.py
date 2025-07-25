@@ -1,16 +1,17 @@
 
 
 
-def grabGun(motion_service, vertical_delta):
+def grabGun(motion_service, vertical_delta, horizontal_delta):
     # Arms motion from user have always the priority than walk arms motion
-    # JointNames = ["RShoulderPitch", "RElbowRoll", "RElbowYaw", "LShoulderPitch", "LElbowRoll", "LElbowYaw"]
+
     JointNames = ["RShoulderPitch", "RShoulderRoll", "RElbowRoll", "RElbowYaw"]
     deg_to_rad = 0.017453
-    # arm_pos = [-50, 30, -90, 30 - vertical_delta, -40, -80]
-    arm_pos = [-20 - vertical_delta, -0.5, 20, 0]
+    # "RElbowRoll":5 metrów -  12 stopni. 3 metry - 14 stopni.
+    # "RShoulderPitch" (bazowe): 5 metrów - -10 stopni. 3 metry - -8 stopni.
+    arm_pos = [-20 - vertical_delta, -0.5, 14 + horizontal_delta, 0]
     arm_pos = [x * deg_to_rad for x in arm_pos]
 
-    pFractionMaxSpeed = 1.0
+    pFractionMaxSpeed = 0.5
 
     motion_service.angleInterpolationWithSpeed(JointNames, arm_pos, pFractionMaxSpeed)
     #motion_service.setAngles(JointNames, Arm1, pFractionMaxSpeed)

@@ -7,12 +7,12 @@ from typing import Any
 import time
 import cv2
 from vla_and_vision.metal_bottle_detector import target_and_shoot_bottle
-from motion import grabGun, lowerGun
+from motion import grabGun, lowerGun, turnHead
 import logfire
 import requests
 
 
-GUN_API = 'http://192.168.74.134'
+GUN_API = '10.65.237.134'
 
 
 # logfire.configure(console=False)
@@ -32,9 +32,10 @@ class LLMAndSaying:
         self.message_history = []  # Conversation history management
         self.system_prompt = self._load_system_message(prompt_name, language)
         self.openrouter_model = OpenAIModel(
-            'openai/gpt-4.1',
+            #'openai/gpt-4.1',
             #'meta-llama/llama-4-maverick',
-            #'deepseek/deepseek-chat-v3-0324',
+            'google/gemini-2.5-pro',
+            #'anthropic/claude-sonnet-4'
             provider=OpenRouterProvider(api_key=os.getenv('OPENROUTER_API_KEY')),
         )
         self.agent = Agent(
@@ -126,12 +127,21 @@ class LLMAndSaying:
     def _turn_robot_tool(self, motion_service):
         """Create turn robot tool for the agent"""
         def turn_robot(ctx: RunContext[Any], degrees: float):
-            """Turn the robot by specified angle in degrees (positive = left, negative = right)"""
+            """
+            Turn the robot by specified angle in degrees (positive = left, negative = right).
+            param degrees: angle to turn. Hint: angle value you see on the photo under the target is the value you need to provide here (keep sign as well).
+            """
             print(f"Turning {degrees} degrees")
-            # Convert degrees to radians
+
+            print(motion_service.getExternalCollisionProtectionEnabled("All"))
+            # add additional 7 degrees with same vector for calm friction
+            # if abs(degrees) <= 20:
+            #     degrees = degrees + 7 if degrees > 0 else degrees - 7
             radians = degrees * 0.01745
+            motion_service.stopMove()
             motion_service.moveTo(0.0, 0.0, radians)
-            # print("Turning end")
+            motion_service.waitUntilMoveIsFinished()
+            turnHead(motion_service, 0)  # zeroing head position
 
         return turn_robot
 
@@ -215,19 +225,21 @@ class LLMAndSaying:
 
     def _shoot_tool(self, motion_service):
         """Create tool for the agent"""
-        def shoot(ctx: RunContext[Any], vertical_angle: float):
+        def shoot(ctx: RunContext[Any], vertical_angle: float, horizontal_angle_correction: float):
             """
             Shoot. Calling that tool shoots using airsoft gun to the front of you.
             Ensure object you want to shoot is exactly in front of you (on 0 deg).
             If not exacly at 0 deg, rotate yourself first.
 
             :param vertical_angle: angle of vertical angle in degrees (positive = up, negative = down)
+            :param horizontal_angle_correction: little right/left correction, up to +-13 deg. If need to correct more, use turn robot.
             """
-            print(f"Executing shoot tool, vertical angle: {vertical_angle} deg.")
-            grabGun(motion_service, vertical_angle)
+            print(f"Executing shoot tool, vertical angle: {vertical_angle} deg, horizontal correction: {horizontal_angle_correction} deg.")
+            grabGun(motion_service, vertical_angle, horizontal_angle_correction)
             time.sleep(1)  # Wait for hand ro raise
-            requests.get(f'{GUN_API}/fire')
+            requests.get(f'http://{GUN_API}/fire')
             time.sleep(1)    # Wait for gun to shoot
+            time.sleep(10) # for barrel kierunek analisys
             lowerGun(motion_service)
             result = "Shot fired successfully!"
             return result

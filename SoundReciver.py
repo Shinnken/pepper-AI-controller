@@ -130,7 +130,7 @@ class SoundReceiverModule(object):
                 wf.writeframes(compressed_bytes)
 
             byte_buffer.seek(0)
-            print("[SoundReceiver] Processing accumulated audio on a separate thread.")
+            #print("[SoundReceiver] Processing accumulated audio on a separate thread.")
             
             with sr.AudioFile(byte_buffer) as source:
                 audio_data = self.r.record(source)
