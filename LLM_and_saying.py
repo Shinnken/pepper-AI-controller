@@ -133,6 +133,7 @@ class LLMAndSaying:
             """
             print(f"Turning {degrees} degrees")
 
+            print(motion_service.getExternalCollisionProtectionEnabled("All"))
             # add additional 7 degrees with same vector for calm friction
             # if abs(degrees) <= 20:
             #     degrees = degrees + 7 if degrees > 0 else degrees - 7
@@ -224,16 +225,17 @@ class LLMAndSaying:
 
     def _shoot_tool(self, motion_service):
         """Create tool for the agent"""
-        def shoot(ctx: RunContext[Any], vertical_angle: float):
+        def shoot(ctx: RunContext[Any], vertical_angle: float, horizontal_angle_correction: float):
             """
             Shoot. Calling that tool shoots using airsoft gun to the front of you.
             Ensure object you want to shoot is exactly in front of you (on 0 deg).
             If not exacly at 0 deg, rotate yourself first.
 
             :param vertical_angle: angle of vertical angle in degrees (positive = up, negative = down)
+            :param horizontal_angle_correction: little right/left correction, up to +-13 deg. If need to correct more, use turn robot.
             """
-            print(f"Executing shoot tool, vertical angle: {vertical_angle} deg.")
-            grabGun(motion_service, vertical_angle)
+            print(f"Executing shoot tool, vertical angle: {vertical_angle} deg, horizontal correction: {horizontal_angle_correction} deg.")
+            grabGun(motion_service, vertical_angle, horizontal_angle_correction)
             time.sleep(1)  # Wait for hand ro raise
             requests.get(f'http://{GUN_API}/fire')
             time.sleep(1)    # Wait for gun to shoot

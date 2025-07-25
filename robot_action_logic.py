@@ -10,6 +10,7 @@ class RobotActionHandler:
         self.tts = tts
         self.video_service = video_service
         self.vid_handle = vid_handle
+        self.motion_service = motion_service
         # Initialize LLM agent here
         self.llm_agent = LLMAndSaying(motion_service, video_service, vid_handle, sound_module=sound_module, speech_service=tts, language=language)
         self.is_idle = True
@@ -44,8 +45,8 @@ class RobotActionHandler:
 
     async def _execute_single_step(self, user_command):
         """Execute a single perception-decision-action cycle"""
-        # Capture environment
-            
+        # Capture environment after robot finished previous move
+        self.motion_service.waitUntilMoveIsFinished()
         camera_buffer = take_picture(self.video_service, self.vid_handle, add_vertical_grid=True)
 
         # Encode the image to JPEG, then convert to bytes for the LLM
