@@ -86,5 +86,8 @@ def take_picture(video_service, video_handle, center_angle=0, add_vertical_grid=
     if add_vertical_grid:
         image_buffer = draw_vertical_angle_grid(image_buffer)
 
-
     return image_buffer
+
+
+def take_gun_camera_photo():
+    pass

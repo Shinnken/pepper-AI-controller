@@ -14,8 +14,8 @@ RESOLUTION_INDEX = 3
 COLORSPACE_INDEX = 11
 FRAMERATE = 5
 
-LANGUAGE = "Polski"
-#LANGUAGE = "English"
+#LANGUAGE = "Polski"
+LANGUAGE = "English"
 
 print("Connecting to robot")
 # app = qi.Application(sys.argv, url="tcps://192.168.74.1:9503")  # Pepper
@@ -75,6 +75,7 @@ async def main():
     #motion_service.moveTo(0, 0, -0.5)
     #motion_service.waitUntilMoveIsFinished()
     #motion_service.moveTo(0, 0, 0.5)
+    #motion_service.setExternalCollisionProtectionEnabled("Arms", False)
 
     # Initialize robot action handler
     robot_action_handler = RobotActionHandler(

@@ -8,7 +8,7 @@ def grabGun(motion_service, vertical_delta, horizontal_delta):
     deg_to_rad = 0.017453
     # "RElbowRoll":5 metrów -  12 stopni. 3 metry - 14 stopni.
     # "RShoulderPitch" (bazowe): 5 metrów - -10 stopni. 3 metry - -8 stopni.
-    arm_pos = [-20 - vertical_delta, -0.5, 14 + horizontal_delta, 0]
+    arm_pos = [-21 - vertical_delta, -0.5, 13 + horizontal_delta, 0]
     arm_pos = [x * deg_to_rad for x in arm_pos]
 
     pFractionMaxSpeed = 0.5

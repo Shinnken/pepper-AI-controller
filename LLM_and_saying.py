@@ -1,4 +1,6 @@
 import os
+from camera import take_gun_camera_photo
+
 from pydantic_ai import Agent, RunContext, BinaryContent
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openrouter import OpenRouterProvider
@@ -15,8 +17,8 @@ import requests
 GUN_API = '10.65.237.134'
 
 
-# logfire.configure(console=False)
-# logfire.instrument_pydantic_ai()
+logfire.configure(console=False)
+logfire.instrument_pydantic_ai()
 
 load_dotenv(find_dotenv())
 
@@ -225,24 +227,59 @@ class LLMAndSaying:
 
     def _shoot_tool(self, motion_service):
         """Create tool for the agent"""
-        def shoot(ctx: RunContext[Any], vertical_angle: float, horizontal_angle_correction: float):
+        def shoot(ctx: RunContext[Any], vertical_angle: float, target_name: str):
             """
             Shoot. Calling that tool shoots using airsoft gun to the front of you.
             Ensure object you want to shoot is exactly in front of you (on 0 deg).
-            If not exacly at 0 deg, rotate yourself first.
+            If not exactly at 0 deg, rotate yourself first.
 
-            :param vertical_angle: angle of vertical angle in degrees (positive = up, negative = down)
-            :param horizontal_angle_correction: little right/left correction, up to +-13 deg. If need to correct more, use turn robot.
+            :param vertical_angle: angle of vertical target in degrees (positive = up, negative = down)
+            :param target_name: name of the target to analyze in the image and get corrections for
             """
-            print(f"Executing shoot tool, vertical angle: {vertical_angle} deg, horizontal correction: {horizontal_angle_correction} deg.")
-            grabGun(motion_service, vertical_angle, horizontal_angle_correction)
+            print(f"[SHOOT TOOL] Starting execution - Target: {target_name}, Initial vertical angle: {vertical_angle} deg")
+
+            # Take photo from gun camera
+            gun_photo = take_gun_camera_photo()
+
+            # Prepare detailed input for LLM
+            llm_prompt = f"""Analyze the gun camera image to determine shooting corrections for target: {target_name}.
+            
+            The image shows what the gun barrel sees. You need to provide:
+            1. vertical_correction: degrees to adjust up (positive) or down (negative) to hit the target
+            2. horizontal_correction: degrees to adjust left (positive) or right (negative) to hit the target"""
+            
+            llm_input = [
+                llm_prompt,
+                gun_photo
+            ]
+            
+            # Get corrections from LLM (single call with structured output)
+            corrections = self.agent.run_sync(
+                llm_input,
+                response_format = {
+                    "vertical_correction": float,
+                    "horizontal_correction": float
+                }
+            )
+            
+            # Apply corrections - vertical starts from 0, horizontal adds to initial correction
+            final_vertical_correction = corrections["vertical_correction"]
+            final_horizontal_correction = vertical_angle + corrections["horizontal_correction"]
+            
+            print(f"[SHOOT TOOL] LLM corrections - Vertical: {corrections['vertical_correction']} deg, Horizontal: {corrections['horizontal_correction']} deg")
+            print(f"[SHOOT TOOL] Final angles - Vertical: {final_vertical_correction} deg, Horizontal: {final_horizontal_correction} deg")
+            
+            grabGun(motion_service, final_vertical_correction, final_horizontal_correction)
             time.sleep(1)  # Wait for hand ro raise
             requests.get(f'http://{GUN_API}/fire')
             time.sleep(1)    # Wait for gun to shoot
             time.sleep(10) # for barrel kierunek analisys
             lowerGun(motion_service)
-            result = "Shot fired successfully!"
-            return result
+
+            motion_service.waitUntilMoveIsFinished()
+            turnHead(motion_service, 0)
+
+            return f"Shot fired at {target_name} with corrections - V: {corrections['vertical_correction']}°, H: {corrections['horizontal_correction']}°"
         
         return shoot
 
