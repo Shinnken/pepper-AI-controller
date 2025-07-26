@@ -91,3 +91,53 @@ def take_picture(video_service, video_handle, center_angle=0, add_vertical_grid=
 
 def take_gun_camera_photo():
     pass
+
+
+def draw_gun_camera_crosshair(image):
+    """Draw crosshair grid with angle markers for gun camera images."""
+    image_height, image_width = image.shape[:2]
+    
+    # RPi Camera V2 field of view
+    horizontal_fov = 62
+    vertical_fov = 49
+    
+    # Center coordinates
+    center_x = image_width // 2
+    center_y = image_height // 2
+    
+    # Red color in BGR format
+    red_color = (0, 0, 0)
+    
+    # Draw main crosshair lines
+    cv2.line(image, (center_x, 0), (center_x, image_height), red_color, 2)
+    cv2.line(image, (0, center_y), (image_width, center_y), red_color, 2)
+    
+    # Draw vertical angle markers
+    for angle in range(-20, 21):
+        y_pos = int(center_y * (1 - angle / (vertical_fov/2)))
+        if angle == 0 or angle % 5 == 0:
+            if angle % 5 == 0:
+                # Draw longer tick for 5-degree marks
+                cv2.line(image, (center_x - 20, y_pos), (center_x + 20, y_pos), red_color, 2)
+                cv2.putText(image, str(angle), (center_x + 25, y_pos),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, red_color, 2)
+        else:
+            # Draw shorter tick for 1-degree marks near center
+            if abs(angle) <= 15:
+                cv2.line(image, (center_x - 10, y_pos), (center_x + 10, y_pos), red_color, 1)
+
+    # Draw horizontal angle markers
+    for angle in range(-30, 31):
+        x_pos = int(center_x * (1 - angle / (horizontal_fov/2)))
+        if angle == 0 or angle % 5 == 0:
+            if angle % 5 == 0:
+                # Draw longer tick for 5-degree marks
+                cv2.line(image, (x_pos, center_y - 20), (x_pos, center_y + 20), red_color, 2)
+                cv2.putText(image, str(angle), (x_pos - 10, center_y - 25),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, red_color, 2)
+        else:
+            # Draw shorter tick for 1-degree marks near center
+            if abs(angle) <= 15:
+                cv2.line(image, (x_pos, center_y - 10), (x_pos, center_y + 10), red_color, 1)
+
+    return image

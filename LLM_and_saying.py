@@ -1,26 +1,30 @@
 import os
-from camera import take_gun_camera_photo
-
 from pydantic_ai import Agent, RunContext, BinaryContent
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openrouter import OpenRouterProvider
+from pydantic import BaseModel
 from dotenv import load_dotenv, find_dotenv
 from typing import Any
 import time
 import cv2
-from vla_and_vision.metal_bottle_detector import target_and_shoot_bottle
+from rpi_client import RPiController
 from motion import grabGun, lowerGun, turnHead
+from camera import draw_gun_camera_crosshair
 import logfire
 import requests
 
 
-GUN_API = '10.65.237.134'
 
-
-logfire.configure(console=False)
-logfire.instrument_pydantic_ai()
+# logfire.configure(console=False)
+# logfire.instrument_pydantic_ai()
 
 load_dotenv(find_dotenv())
+
+
+class Corrections(BaseModel):
+    vertical_correction: float  # stopnie, + = do góry, – = w dół
+    horizontal_correction: float  # stopnie, + = w lewo, – = w prawo
+
 
 class LLMAndSaying:
     def __init__(self, motion_service, video_service, video_handle, sound_module, speech_service, prompt_name='system_message_shooting', language='Polski'):
@@ -40,6 +44,7 @@ class LLMAndSaying:
             #'anthropic/claude-sonnet-4'
             provider=OpenRouterProvider(api_key=os.getenv('OPENROUTER_API_KEY')),
         )
+        self.rpi_controller = RPiController()
         self.agent = Agent(
             self.openrouter_model,
             system_prompt=self.system_prompt
@@ -52,6 +57,7 @@ class LLMAndSaying:
         #self.agent.tool(self._manipulate_hand_tool(motion_service))
         self.agent.tool(self._shoot_tool(motion_service))
         self.agent.tool(self.task_finished_tool())
+        self.shooter_llm = Agent(self.openrouter_model, output_type=Corrections)
 
     async def generate_say_execute_response(self, user_input, speech_service, sound_module, is_idle):
         full_response = ""
@@ -135,7 +141,7 @@ class LLMAndSaying:
             """
             print(f"Turning {degrees} degrees")
 
-            print(motion_service.getExternalCollisionProtectionEnabled("All"))
+            print(motion_service.getExternalCollisionProtectionEnabled("Arms"))
             # add additional 7 degrees with same vector for calm friction
             # if abs(degrees) <= 20:
             #     degrees = degrees + 7 if degrees > 0 else degrees - 7
@@ -205,26 +211,6 @@ class LLMAndSaying:
         
         return look_forward
 
-    def _manipulate_hand_tool(self, motion_service):
-        """Create hand manipulation tool for the agent"""
-        def manipulate_robot_hand(ctx: RunContext[Any], hand: str, action: str):
-            """
-            Manipulate the robot's hand.
-            :param hand: which hand to manipulate, either "left" or "right".
-            :param action: what to do with the hand, either "open" or "close".
-            """
-            print(f"Manipulating {hand} hand to {action}")
-            hand_name = "RHand" if hand.lower() == "right" else "LHand"
-
-            if action.lower() == "open":
-                motion_service.openHand(hand_name)
-            else:  # "close"
-                motion_service.closeHand(hand_name)
-
-            return f"Successfully {action}ed {hand} hand."
-
-        return manipulate_robot_hand
-
     def _shoot_tool(self, motion_service):
         """Create tool for the agent"""
         def shoot(ctx: RunContext[Any], vertical_angle: float, target_name: str):
@@ -234,50 +220,53 @@ class LLMAndSaying:
             If not exactly at 0 deg, rotate yourself first.
 
             :param vertical_angle: angle of vertical target in degrees (positive = up, negative = down)
-            :param target_name: name of the target to analyze in the image and get corrections for
+            :param target_name: name and short description of target
             """
-            print(f"[SHOOT TOOL] Starting execution - Target: {target_name}, Initial vertical angle: {vertical_angle} deg")
-
+            print(f"[SHOOT TOOL] Shooting: {target_name}, Initial vertical angle: {vertical_angle} deg")
+            grabGun(motion_service, vertical_angle, 0)
+            motion_service.waitUntilMoveIsFinished()
             # Take photo from gun camera
-            gun_photo = take_gun_camera_photo()
+            gun_photo = self.rpi_controller.capture_image()
+
+            gun_photo = cv2.resize(gun_photo, (int(gun_photo.shape[1]/4), int(gun_photo.shape[0]/4))) # lower resolution to fit llm. ToDo: Make on RPi side.
+            # Apply crosshair grid to gun camera image
+            gun_photo_with_grid = draw_gun_camera_crosshair(gun_photo)
+            # make resolution lesser
+            # write to file
+            cv2.imwrite("gun_camera_with_grid.png", gun_photo_with_grid)
+
+
+            # Convert processed image to bytes for LLM
+            _, buffer = cv2.imencode('.jpg', gun_photo_with_grid, [cv2.IMWRITE_JPEG_QUALITY, 90])
+            photo_bytes = buffer.tobytes()
+            photo_content = BinaryContent(data=photo_bytes, media_type='image/jpeg')
 
             # Prepare detailed input for LLM
             llm_prompt = f"""Analyze the gun camera image to determine shooting corrections for target: {target_name}.
             
-            The image shows what the gun barrel sees. You need to provide:
+            Aim in the very middle of the target. You need to provide:
             1. vertical_correction: degrees to adjust up (positive) or down (negative) to hit the target
             2. horizontal_correction: degrees to adjust left (positive) or right (negative) to hit the target"""
-            
-            llm_input = [
-                llm_prompt,
-                gun_photo
-            ]
-            
+
             # Get corrections from LLM (single call with structured output)
-            corrections = self.agent.run_sync(
-                llm_input,
-                response_format = {
-                    "vertical_correction": float,
-                    "horizontal_correction": float
-                }
+            corrections = self.shooter_llm.run_sync(
+                [llm_prompt, photo_content],
             )
-            
+
             # Apply corrections - vertical starts from 0, horizontal adds to initial correction
-            final_vertical_correction = corrections["vertical_correction"]
-            final_horizontal_correction = vertical_angle + corrections["horizontal_correction"]
+            final_vertical_correction = corrections.output.vertical_correction
+            final_horizontal_correction = vertical_angle + corrections.output.horizontal_correction
             
-            print(f"[SHOOT TOOL] LLM corrections - Vertical: {corrections['vertical_correction']} deg, Horizontal: {corrections['horizontal_correction']} deg")
-            print(f"[SHOOT TOOL] Final angles - Vertical: {final_vertical_correction} deg, Horizontal: {final_horizontal_correction} deg")
-            
+            print(f"[SHOOT TOOL] shoot corrections. Vertical: {corrections.output.vertical_correction} deg, Horizontal: {corrections.output.horizontal_correction} deg")
+
             grabGun(motion_service, final_vertical_correction, final_horizontal_correction)
             time.sleep(1)  # Wait for hand ro raise
-            requests.get(f'http://{GUN_API}/fire')
+            self.rpi_controller.fire()
             time.sleep(1)    # Wait for gun to shoot
             time.sleep(10) # for barrel kierunek analisys
             lowerGun(motion_service)
 
             motion_service.waitUntilMoveIsFinished()
-            turnHead(motion_service, 0)
 
             return f"Shot fired at {target_name} with corrections - V: {corrections['vertical_correction']}°, H: {corrections['horizontal_correction']}°"
         

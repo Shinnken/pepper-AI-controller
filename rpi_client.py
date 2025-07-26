@@ -8,10 +8,14 @@ import requests
 import json
 import base64
 import argparse
-from datetime import datetime
+import numpy as np
+import cv2
+
+
+RASPBERRY_IP = '10.65.237.202'
 
 class RPiController:
-    def __init__(self, host="10.52.118.202", port=5000):
+    def __init__(self, host=RASPBERRY_IP, port=5000):
         self.base_url = f"http://{host}:{port}"
     
     def get_status(self):
@@ -48,20 +52,25 @@ class RPiController:
     
     def capture_image(self, save_to_file=None):
         """Capture image from camera"""
-        try:
-            response = requests.get(f"{self.base_url}/camera/capture")
-            data = response.json()
-            
-            if data.get('success') and save_to_file:
-                # Decode base64 image and save
-                image_data = base64.b64decode(data['image_data'])
+        response = requests.get(f"{self.base_url}/camera/capture")
+        data = response.json()
+
+        if data.get('success'):
+            # Decode base64 image
+            image_data = base64.b64decode(data['image_data'])
+
+            # Convert to numpy array for processing
+            nparr = np.frombuffer(image_data, np.uint8)
+            image_array = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+            if save_to_file:
                 with open(save_to_file, 'wb') as f:
                     f.write(image_data)
-                data['saved_to'] = save_to_file
-            
-            return data
-        except Exception as e:
-            return {"error": str(e)}
+
+            return image_array
+        else:
+            return None
+
     
     def capture_and_save_on_pi(self):
         """Capture and save image on Raspberry Pi"""
